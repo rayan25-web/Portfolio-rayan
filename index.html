@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mohammed Rayan Afzal | Electrical &amp; Automation Engineering</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800;900&family=Inter+Tight:wght@400;500&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+<script>document.documentElement.classList.add("js")</script>
+<link rel="stylesheet" href="./AFZAL.css">
+</head>
+<body>
+
+<div class="cursor" aria-hidden="true">
+  <svg viewBox="0 0 24 24"><path d="M13.5 1.5 4 13.5h6.2L9 22.5l10-12.7h-6.4z"/></svg>
+</div>
+<canvas id="sparks" aria-hidden="true"></canvas>
+
+<div class="bg" aria-hidden="true"><div class="bg-grid"></div></div>
+<canvas id="scene" aria-hidden="true"></canvas>
+<div class="status mono"><i></i><span id="cstat">Conveyor running, servo drives on</span></div>
+
+<header class="nav">
+  <a href="#hero" class="brand">M. Rayan Afzal</a>
+  <nav>
+    <a href="#profile">Profile</a>
+    <a href="#process">System</a>
+    <a href="#projects">Projects</a>
+    <a href="#credentials">Certificates</a>
+    <a href="#stack">Stack</a>
+    <a href="#how">Line</a>
+    <a href="#contact">GitHub</a>
+  </nav>
+</header>
+
+<main>
+<section id="hero" class="hero">
+  <span class="chip c1" data-speed="-0.16">24 V DC</span>
+  <span class="chip c2" data-speed="-0.28">I0.0</span>
+
+  <p class="mono intro-fade" data-speed="-0.05">Electrical &amp; Electronics Engineering,BMSIT-2027</p>
+  <h1>
+    <span class="ln" data-speed="0.015"><i class="mk"><b>Mohammed</b></i></span>
+    <span class="ln" data-speed="0.05"><i class="mk"><b>Rayan</b></i></span>
+    <span class="ln" data-speed="0.09"><i class="mk"><b>Afzal</b></i></span>
+  </h1>
+  <p class="sub intro-fade" data-speed="0.03">Industrial automation, Siemens PLC and control systems.</p>
+  <aside class="glass hero-card intro-fade" data-speed="-0.1">
+    <p class="mono">Automation toolchain</p>
+    <ul class="kv">
+      <li><span>PLC</span><b>S7-1200</b></li>
+      <li><span>Software</span><b>TIA Portal V20</b></li>
+      <li><span>HMI</span><b>WinCC</b></li>
+      <li><span>Simulation</span><b>PLCSIM Advanced</b></li>
+    </ul>
+  </aside>
+  <p class="scroll-ind mono">Scroll</p>
+</section>
+
+<section id="profile" class="sec profile">
+  <svg class="deco ladder" data-speed="0.16" viewBox="0 0 400 420">
+    <path d="M40 10V410M360 10V410"/>
+    <path d="M40 60H140M180 60H360M140 40V80M180 40V80"/>
+    <path d="M40 150H120M160 150H250M290 150H360M120 130V170M160 130V170"/><circle cx="270" cy="150" r="20" class="o"/>
+    <path d="M40 240H180M220 240H360M180 220V260M220 220V260"/>
+    <path d="M40 330H100M140 330H240M280 330H360M100 310V350M140 310V350"/><circle cx="260" cy="330" r="20" class="o"/>
+  </svg>
+  <div class="glass panel" data-speed="0.03">
+    <p class="mono">01 / Profile</p>
+    <h2 class="rv">Electrical engineering student working in industrial automation and control.</h2>
+    <p class="rv">I am an Electrical &amp; Electronics Engineering student, graduating in 2027. I program Siemens S7-1200 PLCs in TIA Portal and build ladder logic, WinCC HMIs and sensor-driven control for real hardware. Alongside automation I work in MATLAB and Simulink on battery and power electronics modeling, and in Python on machine learning.</p>
+  </div>
+  <div class="glass panel index" data-speed="-0.05">
+    <p class="mono">Technical index</p>
+    <ul class="kv">
+      <li><span>PLC</span><b>S7-1200</b></li>
+      <li><span>Software</span><b>TIA V20</b></li>
+      <li><span>HMI</span><b>WinCC</b></li>
+      <li><span>Simulation</span><b>PLCSIM</b></li>
+      <li><span>Modeling</span><b>MATLAB</b></li>
+      <li><span>CAD</span><b>AutoCAD</b></li>
+    </ul>
+  </div>
+</section>
+
+<section id="process" class="process">
+  <div class="pstage">
+    <div class="pleft">
+      <canvas id="pc" aria-hidden="true"></canvas>
+      <div class="pcap">
+        <p class="mono kick">How my ASRS runs</p>
+        <h2 class="mega">From signal to motion.</h2>
+        <ul class="term mono">
+          <li>reading position from proximity sensors and limit switches</li>
+          <li>running ladder logic written in TIA Portal V20</li>
+          <li>driving the motors and the box-pushing actuator</li>
+          <li>monitoring the system on a WinCC HMI</li>
+        </ul>
+      </div>
+    </div>
+    <div class="pright">
+      <div class="pstep"><span class="mono">01</span><h3 class="mega">Sense</h3><p>Proximity sensors and limit switches report position to the PLC digital inputs.</p></div>
+      <div class="pstep"><span class="mono">02</span><h3 class="mega">Program</h3><p>Ladder logic turns that feedback into storage and retrieval sequences, tested in PLCSIM Advanced.</p></div>
+      <div class="pstep"><span class="mono">03</span><h3 class="mega">Actuate</h3><p>The PLC drives the X and Y axis motors and the actuator that pushes each box.</p></div>
+      <div class="pstep"><span class="mono">04</span><h3 class="mega">Monitor</h3><p>A WinCC HMI gives the operator control and live status of the system.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="projects" class="sec">
+  <svg class="deco gear g-proj" data-teeth="12" viewBox="-100 -100 200 200" data-speed="0.12"></svg>
+  <svg class="deco trace" data-speed="0.18" viewBox="0 0 500 700">
+    <path d="M20 40H200L240 80V260H420"/><path d="M20 140H120L160 180V420H300L340 460H480"/><path d="M60 700V560H260L300 520V340"/><path d="M380 40V160H480"/>
+    <circle cx="200" cy="40" r="6"/><circle cx="420" cy="260" r="6"/><circle cx="480" cy="460" r="6"/><circle cx="300" cy="340" r="6"/><circle cx="480" cy="160" r="6"/>
+  </svg>
+  <p class="mono">02 / Projects</p>
+  <h2 class="mega rv">projects</h2>
+
+  <article class="glass project asrs-project" data-speed="0.025">
+    <div class="visual" data-speed="-0.05">
+      <div class="asrs" role="img" aria-label="Front-view animated ASRS schematic: PLC connected to Tower A and Tower B, each with two storage levels, and a moving X and Y carriage">
+        <svg class="asrs-wire" viewBox="0 0 1000 400" preserveAspectRatio="none" aria-hidden="true">
+          <path d="M340 202H430L535 286H634"/>
+          <path d="M340 210H426L531 294H634"/>
+        </svg>
+        <div class="asrs-plc" aria-hidden="true">
+          <span>Programmable Logic<br>Controller</span>
+        </div>
+        <span class="asrs-front-label" aria-hidden="true">FRONT VIEW</span>
+        <div class="asrs-machine" aria-hidden="true">
+          <div class="asrs-tower tower-a">
+            <span class="asrs-name">TOWER A</span>
+            <div class="asrs-level level-two"><span>LEVEL 2</span><i class="asrs-sensor"></i><i class="asrs-box"></i></div>
+            <div class="asrs-level level-one"><span>LEVEL 1</span><i class="asrs-sensor"></i><i class="asrs-box"></i></div>
+          </div>
+          <div class="asrs-tower tower-b">
+            <span class="asrs-name">TOWER B</span>
+            <div class="asrs-level level-two"><span>LEVEL 2</span><i class="asrs-sensor"></i><i class="asrs-box"></i></div>
+            <div class="asrs-level level-one"><span>LEVEL 1</span><i class="asrs-sensor"></i><i class="asrs-box"></i></div>
+          </div>
+          <div class="asrs-base"><span>BASE</span></div>
+          <div class="asrs-x-rod"><i class="asrs-x-motor"></i></div>
+          <div class="asrs-mover">
+            <i class="asrs-mast"></i>
+            <i class="asrs-lift"><i class="asrs-pusher"></i><i class="asrs-payload"></i></i>
+          </div>
+          <span class="asrs-axis-label x-label">X AXIS · MOTOR DRIVE</span>
+          <span class="asrs-axis-label y-label">Y AXIS</span>
+        </div>
+        <span class="asrs-mode" aria-hidden="true">STORE <b>↔</b> RETRIEVE</span>
+      </div>
+    </div>
+    <div class="txt">
+      <p class="mono">Project 1</p>
+      <h3>PLC-Based Automated Storage and Retrieval System</h3>
+      <p>A two-tower storage and retrieval prototype run by a Siemens S7-1200 PLC. Ladder logic in TIA Portal V20 drives X-axis and Y-axis motion, a box-pushing actuator and four storage positions, with proximity sensors and limit switches giving position feedback. A WinCC HMI provides operator control, and the logic was tested in PLCSIM Advanced.</p>
+      <ul class="tags"><li>S7-1200</li><li>TIA Portal V20</li><li>Ladder Logic</li><li>WinCC</li><li>Sensors</li><li>Motors</li></ul>
+    </div>
+  </article>
+
+  <article class="glass project flip" data-speed="0.025">
+    <div class="visual" data-speed="-0.05">
+      <svg class="rain-chart" viewBox="0 0 800 500" role="img" aria-labelledby="rain-chart-title rain-chart-desc">
+        <title id="rain-chart-title">Illustrative rainfall trend, 1995 to 2025</title>
+        <desc id="rain-chart-desc">An animated, gently fluctuating trend line rises over time. It is a visual illustration, not measured rainfall data.</desc>
+        <defs>
+          <linearGradient id="rain-area" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#f4f4f5" stop-opacity=".24"/>
+            <stop offset="100%" stop-color="#f4f4f5" stop-opacity="0"/>
+          </linearGradient>
+          <filter id="rain-glow" x="-100%" y="-100%" width="300%" height="300%">
+            <feGaussianBlur stdDeviation="5" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
+        <text class="chart-kicker" x="58" y="42">RAINFALL TREND</text>
+        <text class="chart-note" x="742" y="42" text-anchor="end">ILLUSTRATIVE · 1995–2025</text>
+        <g class="chart-grid" aria-hidden="true">
+          <path d="M70 100H750 M70 165H750 M70 230H750 M70 295H750 M70 360H750"/>
+          <path d="M70 100V360 M183 100V360 M296 100V360 M410 100V360 M523 100V360 M636 100V360 M750 100V360"/>
+        </g>
+        <g class="chart-y-labels" aria-hidden="true">
+          <text x="58" y="104" text-anchor="end">HIGH</text>
+          <text x="58" y="234" text-anchor="end">MID</text>
+          <text x="58" y="364" text-anchor="end">LOW</text>
+        </g>
+        <path class="rain-area" d="M70 320 C105 310 128 326 160 300 S218 280 240 290 S290 266 318 270 S366 247 390 258 S442 222 466 238 S516 216 544 220 S596 184 620 202 S674 166 700 178 S730 150 750 142 L750 360 L70 360 Z"/>
+        <path class="rain-trend" id="rainfall-trend-path" d="M70 320 C105 310 128 326 160 300 S218 280 240 290 S290 266 318 270 S366 247 390 258 S442 222 466 238 S516 216 544 220 S596 184 620 202 S674 166 700 178 S730 150 750 142"/>
+        <path class="rain-trend-flow" d="M70 320 C105 310 128 326 160 300 S218 280 240 290 S290 266 318 270 S366 247 390 258 S442 222 466 238 S516 216 544 220 S596 184 620 202 S674 166 700 178 S730 150 750 142" aria-hidden="true"/>
+        <circle class="rain-marker-halo" cx="70" cy="320" r="12" aria-hidden="true">
+          <animateMotion dur="12s" repeatCount="indefinite" rotate="auto">
+            <mpath href="#rainfall-trend-path"/>
+          </animateMotion>
+        </circle>
+        <circle class="rain-marker" cx="70" cy="320" r="4" aria-hidden="true">
+          <animateMotion dur="12s" repeatCount="indefinite" rotate="auto">
+            <mpath href="#rainfall-trend-path"/>
+          </animateMotion>
+        </circle>
+        <g class="chart-years" aria-hidden="true">
+          <text x="70" y="392" text-anchor="middle">1995</text>
+          <text x="183" y="392" text-anchor="middle">2000</text>
+          <text x="296" y="392" text-anchor="middle">2005</text>
+          <text x="410" y="392" text-anchor="middle">2010</text>
+          <text x="523" y="392" text-anchor="middle">2015</text>
+          <text x="636" y="392" text-anchor="middle">2020</text>
+          <text x="750" y="392" text-anchor="middle">2025</text>
+        </g>
+        <text class="chart-axis-title" x="410" y="448" text-anchor="middle">YEAR</text>
+        <g class="chart-legend" aria-hidden="true">
+          <path d="M300 478H336"/>
+          <text x="346" y="482">ILLUSTRATIVE TREND</text>
+        </g>
+      </svg>
+    </div>
+    <div class="txt">
+      <p class="mono">Project 2</p>
+      <h3>Rainfall Prediction</h3>
+      <p>Predicts rainfall from meteorological features in NASA POWER data covering 1995 to 2025. Correlation analysis and PCA prepare the features, and Decision Tree, Random Forest and XGBoost models are trained and evaluated.</p>
+      <ul class="tags"><li>Python</li><li>NASA POWER</li><li>XGBoost</li><li>Random Forest</li><li>PCA</li></ul>
+    </div>
+  </article>
+
+  <article class="glass project eis-project" data-speed="0.025">
+    <div class="visual" data-speed="-0.05">
+      <svg viewBox="0 0 300 180" class="eis" role="img" aria-labelledby="eis-title eis-desc">
+        <title id="eis-title">Illustrative electrochemical impedance spectroscopy Nyquist plot</title>
+        <desc id="eis-desc">A Nyquist-style impedance curve is drawn, zoomed to highlight its arc with a battery state-of-health callout, then returns to the full plot. The curve is illustrative, not measured data.</desc>
+        <text class="eis-heading" x="24" y="18">EIS / NYQUIST RESPONSE</text>
+        <text class="eis-units" x="274" y="18" text-anchor="end">ILLUSTRATIVE</text>
+        <g class="eis-zoom">
+          <path class="eis-axis" d="M28 146H278 M28 146V28"/>
+          <path class="eis-grid" d="M28 122H278 M28 98H278 M28 74H278 M78 28V146 M128 28V146 M178 28V146 M228 28V146"/>
+          <text class="eis-label" x="151" y="169" text-anchor="middle">REAL IMPEDANCE (Z&#8242;)</text>
+          <text class="eis-label" x="12" y="91" text-anchor="middle" transform="rotate(-90 12 91)">-IMAGINARY (Z&#8243;)</text>
+          <path class="eis-curve-base" d="M28 146 C48 146 54 82 116 65 S226 82 278 146" aria-hidden="true"/>
+          <path class="eis-curve" id="eis-curve-path" d="M28 146 C48 146 54 82 116 65 S226 82 278 146"/>
+          <path class="eis-curve-flow" d="M28 146 C48 146 54 82 116 65 S226 82 278 146" aria-hidden="true"/>
+          <circle class="eis-point eis-start" cx="28" cy="146" r="2.8"/>
+          <circle class="eis-point eis-apex" cx="116" cy="65" r="3"/>
+          <circle class="eis-point eis-end" cx="278" cy="146" r="2.8"/>
+          <circle class="eis-tracer" cx="28" cy="146" r="2.4" aria-hidden="true">
+            <animateMotion dur="4.4s" begin="3.2s" repeatCount="indefinite" rotate="auto">
+              <mpath href="#eis-curve-path"/>
+            </animateMotion>
+          </circle>
+        </g>
+        <g class="eis-callout" aria-hidden="true">
+          <rect x="67" y="23" width="166" height="31" rx="5"/>
+          <circle cx="80" cy="33" r="2.4"/>
+          <text x="87" y="35">BATTERY AGEING SIGNATURE</text>
+          <text x="80" y="46">Rint RISES  ·  Cint FALLS</text>
+        </g>
+      </svg>
+    </div>
+    <div class="txt">
+      <p class="mono">Project 3</p>
+      <h3>Battery State-of-Health Estimation using Impedance Spectroscopy</h3>
+      <p>A 5th-semester mini project on lithium-ion battery State-of-Health estimation. Impedance measurements are processed in MATLAB to produce characteristic plots that relate battery behavior to its health, with battery management systems as the intended application.</p>
+      <ul class="tags"><li>MATLAB</li><li>Impedance Spectroscopy</li><li>State of Health</li><li>BMS</li></ul>
+    </div>
+  </article>
+</section>
+
+<section id="credentials" class="sec intro">
+  <svg class="deco nyq" data-speed="0.15" viewBox="0 0 600 300">
+    <path d="M20 280C40 280 60 120 200 100S420 140 580 280"/><path d="M60 280C80 280 100 170 210 150S380 180 540 280"/><path d="M20 280H580"/>
+  </svg>
+  <p class="mono">03 / Certificates</p>
+  <h2 class="mega rv">Certificates</h2>
+  <p class="lead rv">Six MathWorks courses and one BNMIT workshop certificate.</p>
+</section>
+
+<section class="archive" id="archive"></section>
+
+<section class="sec other">
+  <div class="glass panel" data-speed="0.03">
+    <p class="mono">Workshops and training</p>
+    <ul class="plain">
+      <li>7-day FDP on PLC, HMI &amp; Industrial Automation Technologies</li>
+      <li>PLC &amp; Industrial Automation Workshop</li>
+      <li>PLC / HMI / SCADA industrial training</li>
+      <li>FANUC industrial visit</li>
+    </ul>
+  </div>
+</section>
+
+<section id="stack" class="sec stack">
+  <p class="mono">04 / Engineering stack</p>
+  <h2 class="mega rv">Tools and platforms</h2>
+  <ul class="pills">
+    <li>Siemens S7-1200</li><li>TIA Portal V20</li><li>STEP 7</li><li>PLCSIM Advanced</li><li>WinCC Advanced</li>
+    <li>Ladder Logic</li><li>Timers and Counters</li><li>Sequential Control</li><li>PLC-HMI Communication</li>
+    <li>Proximity Sensors</li><li>Limit Switches</li><li>Relays</li><li>DC Motors</li><li>Stepper Motors</li><li>Servo Motors</li><li>VFDs</li><li>24 V DC Control</li>
+    <li>MATLAB</li><li>Simulink</li><li>Simscape</li><li>AutoCAD</li><li>Proteus</li>
+    <li>Python</li><li>C</li><li>Embedded C</li><li>Machine Learning</li>
+  </ul>
+</section>
+
+<section id="how" class="sec how">
+  <p class="mono">05 / How the background works</p>
+  <h2 class="mega rv">The line behind this page</h2>
+  <p class="rv how-lead">The animation fixed behind every section is a concept sketch of a servo-driven conveyor line, a pick-and-place arm and a truck being loaded. I built it to show how a sequenced line behaves. It is not a result from one of my projects, and the ASRS above is my real PLC project. The label at the bottom right of the screen names the state the line is in.</p>
+
+  <div class="how-grid">
+    <div class="glass hcard" data-speed="0.03">
+      <span class="mono">01</span>
+      <h4>Servo drives</h4>
+      <p>The four servo motors under the belt turn the rollers, and the belt carries motor units toward the pick position at a steady speed. When the line stops, the servos stop with it.</p>
+    </div>
+    <div class="glass hcard" data-speed="-0.05">
+      <span class="mono">02</span>
+      <h4>Detection</h4>
+      <p>Units stop at the end of the belt. On a real line, a proximity sensor at that point would tell the controller that a unit is ready to be picked.</p>
+    </div>
+    <div class="glass hcard" data-speed="0.05">
+      <span class="mono">03</span>
+      <h4>Pick and place</h4>
+      <p>The arm moves over the unit, lowers, grips it, lifts, and swings to the next free slot on the truck. It lowers, releases and returns for the next one, filling four slots.</p>
+    </div>
+    <div class="glass hcard" data-speed="-0.03">
+      <span class="mono">04</span>
+      <h4>Truck full</h4>
+      <p>When the fourth motor is placed, the truck is full. The conveyor and servo drives stop, and the truck drives away.</p>
+    </div>
+    <div class="glass hcard" data-speed="0.04">
+      <span class="mono">05</span>
+      <h4>Restart</h4>
+      <p>The line stays stopped while the truck is away. When the truck returns to the loading position, the count resets and the conveyor starts again.</p>
+    </div>
+    <div class="glass hcard" data-speed="-0.06">
+      <span class="mono">06</span>
+      <h4>Factory scenery</h4>
+      <p>The crane trolley slides along its rail with a swinging load, the lamps flicker, dashes flow along the pipes, and the wall gears turn with your scroll.</p>
+    </div>
+  </div>
+
+  <div class="glass flow" data-speed="0.02">
+    <span class="mono">Line states</span>
+    <span class="st">Running</span><i>→</i><span class="st">Truck full</span><i>→</i><span class="st">Truck leaves</span><i>→</i><span class="st">Line stopped</span><i>→</i><span class="st">Truck returns</span><i>→</i><span class="st">Running</span>
+  </div>
+</section>
+
+<section id="contact" class="sec contact">
+  <svg class="deco gear g-contact" data-teeth="14" viewBox="-100 -100 200 200" data-speed="-0.12"></svg>
+  <div class="glass panel" data-speed="0.03">
+    <p class="mono">06 / Contact</p>
+    <h2 class="rv">Code and projects are on GitHub.</h2>
+    <div class="links">
+      <a class="btn" href="https://github.com/rayan25-web" target="_blank" rel="noopener">GitHub</a>
+      <a class="btn ghost" href="https://www.linkedin.com/in/mohammed-rayan-afzal-287a85365/" target="_blank" rel="noopener">LinkedIn</a>
+    </div>
+  </div>
+  <p class="foot mono">Mohammed Rayan Afzal, Electrical &amp; Electronics Engineering,BMSIT-2027</p>
+</section>
+</main>
+<script src="./AFZAL.js"></script>
+</body>
+</html>
