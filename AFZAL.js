@@ -1,1117 +1,369 @@
-(function () {
-  "use strict";
-  var doc = document.documentElement;
-  var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  var fine = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
-  var clamp = function (v, a, b) { return Math.min(b, Math.max(a, v)); };
-  var ease = function (t) { return 1 - Math.pow(1 - t, 3); };
-  var smooth = function (t) { return t * t * (3 - 2 * t); };
-
-  /* ---------- Gear drawing ---------- */
-  function gearD(R, r, n) {
-    var d = "", i, a, w = Math.PI / n, t = w * 0.34, b = w * 0.62;
-    for (i = 0; i < n; i++) {
-      a = i * 2 * w;
-      [[a - b, r], [a - t, R], [a + t, R], [a + b, r]].forEach(function (q, k) {
-        d += (i === 0 && k === 0 ? "M" : "L") + (Math.cos(q[0]) * q[1]).toFixed(1) + " " + (Math.sin(q[0]) * q[1]).toFixed(1);
-      });
-      var na = a + 2 * w - b;
-      d += "A" + r + " " + r + " 0 0 1 " + (Math.cos(na) * r).toFixed(1) + " " + (Math.sin(na) * r).toFixed(1);
-    }
-    return d + "Z";
-  }
-
-  function gearInner(R, r, n, hub) {
-    var s = '<path d="' + gearD(R, r, n) + '"/><circle r="' + hub + '"/><circle r="' + (hub * 0.3) + '"/>';
-    for (var i = 0; i < 4; i++) {
-      var a = i * Math.PI / 2 + 0.4;
-      s += '<path d="M' + (Math.cos(a) * hub).toFixed(1) + " " + (Math.sin(a) * hub).toFixed(1) + "L" + (Math.cos(a) * r * 0.85).toFixed(1) + " " + (Math.sin(a) * r * 0.85).toFixed(1) + '"/>';
-    }
-    return s;
-  }
-
-  [].slice.call(document.querySelectorAll("svg.gear")).forEach(function (svg) {
-    var n = parseInt(svg.getAttribute("data-teeth"), 10) || 14;
-    svg.innerHTML = '<g class="spin">' + gearInner(96, 82, n, 30) + "</g>";
-  });
-
-  /* ---------- Certificates ---------- */
-  var certs = [
-    ["Battery Pack Modeling", "02 May 2026", "certificate-1.png", "MathWorks Training Services"],
-    ["Signal Processing Onramp", "26 August 2025", "certificate-2.png", "MathWorks Training Services"],
-    ["Circuit Simulation Onramp", "02 May 2026", "certificate-3.png", "MathWorks Training Services"],
-    ["Power Electronics Simulation Onramp", "02 May 2026", "certificate-4.png", "MathWorks Training Services"],
-    ["Simscape Battery Onramp", "02 May 2026", "certificate-5.png", "MathWorks Training Services"],
-    ["Simscape Onramp", "01 May 2026", "certificate-6.png", "MathWorks Training Services"],
-    ["FDP on PLC, HMI & Industrial Automation Technologies", "", "certificate-7.png", "BNMIT",
-      "Certificate for the 7-day FDP on PLC, HMI & Industrial Automation Technologies at BNMIT."]
-  ];
-
-  document.getElementById("archive").innerHTML = certs.map(function (c, i) {
-    var desc = c[4] || "Completed 100% of the self-paced MathWorks training course " + c[0] + ".";
-    return '<div class="story"><div class="stage">' +
-      '<figure class="frame glass"><img src="./png%20certificate/' + c[2] + '" alt="Certificate: ' + c[0] + '"></figure>' +
-      '<div class="ctext">' +
-      '<p class="mono">Certificate ' + (i + 1) + " of " + certs.length + "</p>" +
-      "<h3>" + c[0] + "</h3>" +
-      '<p class="c-c">' + c[3] + "</p>" +
-      (c[1] ? '<p class="c-d">' + c[1] + "</p>" : "") +
-      "<p>" + desc + "</p>" +
-      "</div></div></div>";
-  }).join("");
-
-  /* ---------- Elements ---------- */
-  var layers = [].slice.call(document.querySelectorAll("[data-speed]"));
-  var stories = [].slice.call(document.querySelectorAll(".story"));
-  var process = document.getElementById("process");
-  var steps = [].slice.call(document.querySelectorAll(".pstep"));
-  var termLines = [].slice.call(document.querySelectorAll(".term li"));
-  var cursor = document.querySelector(".cursor");
-  var vh = window.innerHeight;
-  var mouseX = 0.5, mouseY = 0.5, mx = 0, my = 0, cx = 0, cy = 0, ks = 1, hot = false;
-
-  /* ---------- Slow, smooth scrolling ---------- */
-  var cur = window.scrollY, tgt = cur;
-
-  function maxScroll() {
-    return doc.scrollHeight - window.innerHeight;
-  }
-
-  if (!reduce && fine) {
-    window.addEventListener("wheel", function (e) {
-      if (e.ctrlKey) return;
-      e.preventDefault();
-      tgt = clamp(tgt + e.deltaY * 0.85, 0, maxScroll());
-    }, { passive: false });
-
-    window.addEventListener("scroll", function () {
-      if (Math.abs(window.scrollY - cur) > 2) {
-        cur = tgt = window.scrollY;
-      }
-    });
-  }
-
-  function stepScroll() {
-    if (reduce || !fine) return;
-    var d = tgt - cur;
-    if (Math.abs(d) > 0.1) {
-      cur += d * 0.075;
-      window.scrollTo(0, cur);
-    }
-  }
-
-  /* ---------- Spark trail ---------- */
-  var sk = document.getElementById("sparks"), sctx = sk.getContext("2d"), sp = [], lx = 0, ly = 0;
-
-  function sizeSparks() {
-    sk.width = window.innerWidth;
-    sk.height = window.innerHeight;
-  }
-
-  function emit(x, y, n, pow) {
-    for (var i = 0; i < n; i++) {
-      var a = Math.random() * 6.283, v = (0.5 + Math.random()) * pow;
-      sp.push({ x: x, y: y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, l: 1 });
-    }
-  }
-
-  function drawSparks() {
-    sctx.clearRect(0, 0, sk.width, sk.height);
-    sctx.lineWidth = 1.4;
-    sctx.lineCap = "round";
-    for (var i = sp.length - 1; i >= 0; i--) {
-      var s = sp[i];
-      s.x += s.vx;
-      s.y += s.vy;
-      s.vx *= 0.93;
-      s.vy *= 0.93;
-      s.l -= 0.035;
-      if (s.l <= 0) {
-        sp.splice(i, 1);
-        continue;
-      }
-      sctx.strokeStyle = "rgba(255,255,255," + s.l.toFixed(2) + ")";
-      sctx.beginPath();
-      sctx.moveTo(s.x, s.y);
-      sctx.lineTo(s.x - s.vx * 2.5, s.y - s.vy * 2.5);
-      sctx.stroke();
-    }
-  }
-
-  /* ---------- Thunder scroll bar (left side) ---------- */
-  var rail = document.querySelector(".thunder-rail");
-  var trTrack = rail.querySelector(".tr-track");
-  var trFill = rail.querySelector(".tr-fill");
-  var trThumb = rail.querySelector(".tr-thumb");
-  var trPct = rail.querySelector(".tr-pct");
-  var bc = document.getElementById("bolts"), bctx = bc.getContext("2d");
-  var bolts = [], flash = 0, lastBolt = 0, prevY = window.scrollY, rp = 0, tb = 0, bdirty = false;
-  var railTop = 0, railH = 1, railX = 20, dragging = false;
-
-  function sizeBolts() {
-    bc.width = window.innerWidth;
-    bc.height = window.innerHeight;
-  }
-
-  function measureRail() {
-    var r = trTrack.getBoundingClientRect();
-    railTop = r.top;
-    railH = Math.max(1, r.height);
-    railX = r.left + r.width / 2;
-  }
-
-  // Jagged line by random midpoint displacement
-  function jag(x0, y0, x1, y1, disp, out) {
-    if (disp < 3) {
-      out.push([x0, y0, x1, y1]);
-      return;
-    }
-    var mxp = (x0 + x1) / 2 + (Math.random() - 0.5) * disp;
-    var myp = (y0 + y1) / 2 + (Math.random() - 0.5) * disp;
-    jag(x0, y0, mxp, myp, disp / 2, out);
-    jag(mxp, myp, x1, y1, disp / 2, out);
-  }
-
-  function spawnBolt(power) {
-    var sx = railX + 6, sy = railTop + rp * railH;
-    var len = window.innerWidth * (0.16 + Math.random() * 0.2) * (0.7 + power * 0.6);
-    var ey = sy + (Math.random() - 0.3) * window.innerHeight * 0.45;
-    var main = [], segs, n, k, base, br;
-    jag(sx, sy, sx + len, ey, len * 0.35, main);
-    segs = main.slice();
-    n = 1 + Math.floor(Math.random() * 3);
-    for (k = 0; k < n; k++) {
-      base = main[Math.floor(Math.random() * main.length)];
-      br = [];
-      jag(base[0], base[1], base[0] + len * (0.2 + Math.random() * 0.3), base[1] + (Math.random() - 0.4) * len * 0.6, len * 0.18, br);
-      segs = segs.concat(br);
-    }
-    bolts.push({ s: segs, life: 1 });
-    flash = Math.min(1, flash + 0.5);
-  }
-
-  function drawBolts() {
-    var i, b, a, gr;
-    if (!bolts.length && flash <= 0) {
-      if (bdirty) {
-        bctx.clearRect(0, 0, bc.width, bc.height);
-        bdirty = false;
-      }
-      return;
-    }
-    bdirty = true;
-    bctx.clearRect(0, 0, bc.width, bc.height);
-    if (flash > 0) {
-      gr = bctx.createLinearGradient(0, 0, bc.width * 0.45, 0);
-      gr.addColorStop(0, "rgba(220,230,255," + (0.12 * flash).toFixed(3) + ")");
-      gr.addColorStop(1, "rgba(220,230,255,0)");
-      bctx.fillStyle = gr;
-      bctx.fillRect(0, 0, bc.width * 0.45, bc.height);
-      flash *= 0.86;
-      if (flash < 0.01) flash = 0;
-    }
-    bctx.lineJoin = "round";
-    bctx.lineCap = "round";
-    for (i = bolts.length - 1; i >= 0; i--) {
-      b = bolts[i];
-      b.life -= 0.065;
-      if (b.life <= 0) {
-        bolts.splice(i, 1);
-        continue;
-      }
-      a = b.life * (0.6 + 0.4 * Math.random());
-      bctx.beginPath();
-      b.s.forEach(function (seg) {
-        bctx.moveTo(seg[0], seg[1]);
-        bctx.lineTo(seg[2], seg[3]);
-      });
-      bctx.strokeStyle = "rgba(170,190,255," + (0.2 * a).toFixed(3) + ")";
-      bctx.lineWidth = 7;
-      bctx.stroke();
-      bctx.strokeStyle = "rgba(255,255,255," + a.toFixed(3) + ")";
-      bctx.lineWidth = 1.6;
-      bctx.stroke();
-    }
-  }
-
-  function updateRail(time, y) {
-    var vel = y - prevY, maxS = maxScroll(), frac = maxS > 0 ? y / maxS : 0, pc;
-    prevY = y;
-    rp += (frac - rp) * 0.14;
-    tb += (clamp(Math.abs(vel) / 50, 0, 0.7) - tb) * 0.2;
-    trFill.style.height = (rp * 100).toFixed(2) + "%";
-    trThumb.style.transform = "translate3d(0," + (rp * railH).toFixed(1) + "px,0) rotate(-12deg) scale(" + (1 + tb).toFixed(3) + ")";
-    trThumb.style.setProperty("--g", tb.toFixed(2));
-    pc = Math.round(rp * 100);
-    trPct.textContent = pc < 10 ? "0" + pc : "" + pc;
-
-    // Thunder when scrolling down
-    if (!reduce && vel > 5 && time - lastBolt > clamp(420 - vel * 9, 130, 420)) {
-      spawnBolt(clamp(vel / 40, 0.2, 1));
-      if (vel > 22) spawnBolt(clamp(vel / 40, 0.2, 1));
-      lastBolt = time;
-    }
-    drawBolts();
-  }
-
-  function railTo(e) {
-    var r = trTrack.getBoundingClientRect();
-    var f = clamp((e.clientY - r.top) / r.height, 0, 1);
-    var v = f * maxScroll();
-    if (!reduce && fine) {
-      tgt = v;
-    } else {
-      window.scrollTo(0, v);
-    }
-  }
-
-  rail.addEventListener("pointerdown", function (e) {
-    dragging = true;
-    try { rail.setPointerCapture(e.pointerId); } catch (err) {}
-    railTo(e);
-    e.preventDefault();
-  });
-  rail.addEventListener("pointermove", function (e) {
-    if (dragging) railTo(e);
-  });
-  ["pointerup", "pointercancel"].forEach(function (n) {
-    rail.addEventListener(n, function () { dragging = false; });
-  });
-
-  /* ---------- Measure ---------- */
-  function measure() {
-    vh = window.innerHeight;
-    layers.forEach(function (el) {
-      el.style.transform = "";
-      el._o = undefined;
-      var r = el.getBoundingClientRect();
-      el._c = r.top + window.scrollY + r.height / 2;
-    });
-    stories.forEach(function (s) {
-      s._t = s.getBoundingClientRect().top + window.scrollY;
-    });
-    process._t = process.getBoundingClientRect().top + window.scrollY;
-    sizeCanvas();
-    sizeScene();
-    sizeSparks();
-    sizeBolts();
-    measureRail();
-  }
-
-  /* ---------- Particle illustrations (process section) ---------- */
-  var cv = document.getElementById("pc"), ctx = cv.getContext("2d");
-  var N = 1300, W = 0, H = 0, dpr = 1;
-  var px = new Float32Array(N), py = new Float32Array(N), vx = new Float32Array(N), vy = new Float32Array(N);
-  var shapes = [], shape = -1;
-
-  function circle(x, y, r, n) {
-    var a = [], i;
-    n = n || 48;
-    for (i = 0; i <= n; i++) {
-      a.push([x + Math.cos(i / n * 6.2832) * r, y + Math.sin(i / n * 6.2832) * r]);
-    }
-    return a;
-  }
-
-  function rect(x, y, w, h) {
-    return [[x, y], [x + w, y], [x + w, y + h], [x, y + h], [x, y]];
-  }
-
-  function dia(s) {
-    return [[0, -s], [s, 0], [0, s], [-s, 0], [0, -s]];
-  }
-
-  function sample(polys, n) {
-    var segs = [], tot = 0, out = [], k, j;
-    polys.forEach(function (p) {
-      for (var i = 0; i < p.length - 1; i++) {
-        var l = Math.hypot(p[i + 1][0] - p[i][0], p[i + 1][1] - p[i][1]);
-        segs.push([p[i], p[i + 1], l]);
-        tot += l;
-      }
-    });
-    for (k = 0; k < n; k++) {
-      var t = Math.random() * tot, s = 0;
-      for (j = 0; j < segs.length; j++) {
-        if (t <= s + segs[j][2] || j === segs.length - 1) {
-          var f = (t - s) / (segs[j][2] || 1), a = segs[j][0], b = segs[j][1];
-          out.push(
-            a[0] + (b[0] - a[0]) * f + (Math.random() - 0.5) * 0.022,
-            a[1] + (b[1] - a[1]) * f + (Math.random() - 0.5) * 0.022
-          );
-          break;
-        }
-        s += segs[j][2];
-      }
-    }
-    return out;
-  }
-
-  (function buildShapes() {
-    var ladder = [[[-.62, -.9], [-.62, .9]], [[.62, -.9], [.62, .9]]], i, a, spokes = [], wave = [];
-    [-.55, 0, .55].forEach(function (y) {
-      ladder.push(
-        [[-.62, y], [-.22, y]],
-        [[-.22, y - .14], [-.22, y + .14]],
-        [[-.08, y - .14], [-.08, y + .14]],
-        [[-.08, y], [.62, y]]
-      );
-    });
-    ladder.push(circle(.4, 0, .14, 24));
-    for (i = 0; i < 6; i++) {
-      a = i / 6 * 6.2832;
-      spokes.push([[-.15 + Math.cos(a) * .2, Math.sin(a) * .2], [-.15 + Math.cos(a) * .62, Math.sin(a) * .62]]);
-    }
-    for (i = 0; i <= 40; i++) {
-      wave.push([-.75 + i / 40 * 1.5, .12 + Math.sin(i / 40 * 12.566) * .22]);
-    }
-    shapes = [
-      sample([dia(.95), dia(.55), circle(0, 0, .16, 32)], N),
-      sample(ladder, N),
-      sample([circle(-.15, 0, .62), circle(-.15, 0, .2, 32), rect(.47, -.09, .5, .18)].concat(spokes), N),
-      sample([rect(-.9, -.62, 1.8, 1.24), [[-.9, -.38], [.9, -.38]], circle(-.78, -.5, .04, 12), circle(-.66, -.5, .04, 12), wave, [[0, .62], [0, .85]], [[-.3, .85], [.3, .85]]], N)
-    ];
-    for (i = 0; i < N; i++) {
-      px[i] = (Math.random() - 0.5) * 2.4;
-      py[i] = (Math.random() - 0.5) * 2.4;
-    }
-  })();
-
-  function setShape(i) {
-    if (i === shape) return;
-    shape = i;
-    for (var k = 0; k < N; k++) {
-      vx[k] += (Math.random() - 0.5) * 0.05;
-      vy[k] += (Math.random() - 0.5) * 0.05;
-    }
-  }
-
-  function sizeCanvas() {
-    dpr = Math.min(window.devicePixelRatio || 1, 2);
-    var r = cv.getBoundingClientRect();
-    W = r.width;
-    H = r.height;
-    cv.width = W * dpr;
-    cv.height = H * dpr;
-  }
-
-  function drawParticles(time) {
-    // Smaller and higher, so it leaves a gap above the caption
-    var S = Math.min(W * 0.36, H * 0.24), ox = W / 2, oy = H * 0.32;
-    var T = shapes[Math.max(shape, 0)];
-    var rc = cv.getBoundingClientRect();
-    var mnx = (mouseX * window.innerWidth - rc.left - ox) / S;
-    var mny = (mouseY * window.innerHeight - rc.top - oy) / S;
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.clearRect(0, 0, W, H);
-    ctx.fillStyle = "rgba(240,241,244,.9)";
-    for (var i = 0; i < N; i++) {
-      var tx = T[i * 2], ty = T[i * 2 + 1];
-      vx[i] += (tx - px[i]) * 0.011 + Math.sin(time * 0.0007 + i) * 0.00012;
-      vy[i] += (ty - py[i]) * 0.011 + Math.cos(time * 0.0006 + i * 1.3) * 0.00012;
-      var dx = px[i] - mnx, dy = py[i] - mny;
-      if (dx * dx + dy * dy < 0.05) {
-        vx[i] += dx * 0.012;
-        vy[i] += dy * 0.012;
-      }
-      vx[i] *= 0.9;
-      vy[i] *= 0.9;
-      px[i] += vx[i];
-      py[i] += vy[i];
-      ctx.fillRect(ox + px[i] * S, oy + py[i] * S, 1.7, 1.7);
-    }
-  }
-
-  /* ==========================================================
-     WALLPAPER: factory interior + conveyor / robot arm / truck
-     ========================================================== */
-  var sc = document.getElementById("scene"), g = sc.getContext("2d");
-  var SWd = 0, SHd = 0, sdpr = 1, S = 1, EXIT = 480;
-  var LW = 1100, BG = "#08090c";
-  var BX0 = 40, BX1 = 630, BY = 292, PICK = 600;
-  var SLOTS = [802, 844, 886, 928], SERVOS = [100, 240, 380, 520], HOME = [700, 170];
-  var SHLD = [690, 336], L1 = 150, L2 = 140;
-  var gBig = new Path2D(gearD(100, 86, 20)), gSmall = new Path2D(gearD(60, 47, 12));
-  var statEl = document.getElementById("cstat"), lastStat = "";
-  var C = {
-    items: [{ x: PICK }, { x: PICK - 62 }, { x: PICK - 124 }],
-    spawn: 1, belt: 0, spin: 0,
-    truck: { x: 0, state: "load", wait: 0, items: 0 },
-    arm: { x: HOME[0], y: HOME[1], sx: 0, sy: 0, tx: 0, ty: 0, t: 0, d: 1, step: null, q: [], held: null }
-  };
-
-  function sizeScene() {
-    sdpr = Math.min(window.devicePixelRatio || 1, 1.5);
-    SWd = window.innerWidth;
-    SHd = window.innerHeight;
-    sc.width = SWd * sdpr;
-    sc.height = SHd * sdpr;
-    S = Math.min(SWd / 1120, 0.55 * SHd / 277);
-    var ox0 = (SWd - LW * S) / 2;
-    EXIT = Math.max(480, (SWd - ox0) / S - 760);
-  }
-
-  function tween(s) {
-    var A = C.arm;
-    A.step = s;
-    A.sx = A.x;
-    A.sy = A.y;
-    A.tx = s[0];
-    A.ty = s[1];
-    A.t = 0;
-    A.d = s[2];
-  }
-
-  function convUpdate(dt) {
-    var T = C.truck, A = C.arm, i;
-    if (T.state === "leave") {
-      T.x = Math.min(EXIT, T.x + dt * (70 + T.x * 1.1));
-      if (T.x >= EXIT) {
-        T.state = "away";
-        T.wait = 3.5;
-      }
-    } else if (T.state === "away") {
-      T.wait -= dt;
-      if (T.wait <= 0) T.state = "return";
-    } else if (T.state === "return") {
-      T.x = Math.max(0, T.x - dt * (70 + T.x * 1.1));
-      if (T.x <= 0) {
-        T.state = "load";
-        T.items = 0;
-      }
-    }
-
-    var run = T.state === "load";
-    if (run) {
-      C.belt += dt * 90;
-      C.spin += dt * 6;
-    }
-
-    if (run) {
-      C.spawn -= dt;
-      var last = C.items[C.items.length - 1];
-      if (C.spawn <= 0 && C.items.length < 8 && (!last || last.x > BX0 + 90)) {
-        C.items.push({ x: BX0 + 10 });
-        C.spawn = 1.4;
-      }
-      var limit = PICK;
-      for (i = 0; i < C.items.length; i++) {
-        C.items[i].x = Math.min(C.items[i].x + 90 * dt, limit);
-        limit = C.items[i].x - 62;
-      }
-    }
-
-    if (A.step) {
-      A.t += dt;
-      var k = Math.min(1, A.t / A.d);
-      k = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
-      A.x = A.sx + (A.tx - A.sx) * k;
-      A.y = A.sy + (A.ty - A.sy) * k;
-      if (A.t >= A.d) {
-        var s = A.step;
-        A.step = null;
-        if (s[3]) s[3]();
-      }
-    }
-
-    if (!A.step) {
-      if (A.q.length) {
-        tween(A.q.shift());
-      } else {
-        var first = C.items[0];
-        if (run && T.items < 4 && !A.held && first && first.x >= PICK - 1) {
-          var sl = SLOTS[T.items];
-          A.q = [
-            [PICK, 185, 0.28],
-            [PICK, 262, 0.16, function () { A.held = C.items.shift(); }],
-            [PICK, 185, 0.16],
-            [sl, 235, 0.3],
-            [sl, 316, 0.16, function () { T.items++; A.held = null; }],
-            [sl, 235, 0.16]
-          ];
-        } else if (run && T.items >= 4 && !A.held) {
-          T.state = "leave";
-        } else {
-          var want = (run && T.items < 4) ? [PICK, 185] : HOME;
-          if (Math.hypot(A.x - want[0], A.y - want[1]) > 2) {
-            tween([want[0], want[1], 0.5]);
-          }
-        }
-      }
-    }
-
-    var msg = run ? "Conveyor running, servo drives on"
-      : T.state === "leave" ? "Truck loaded and leaving, conveyor stopped"
-      : T.state === "away" ? "Truck away, conveyor and servo drives stopped"
-      : "Truck returning, conveyor starts when it arrives";
-    if (msg !== lastStat) {
-      lastStat = msg;
-      statEl.textContent = msg;
-    }
-  }
-
-  function rr(c, x, y, w, h, r) {
-    c.beginPath();
-    c.moveTo(x + r, y);
-    c.arcTo(x + w, y, x + w, y + h, r);
-    c.arcTo(x + w, y + h, x, y + h, r);
-    c.arcTo(x, y + h, x, y, r);
-    c.arcTo(x, y, x + w, y, r);
-    c.closePath();
-  }
-
-  function motor(c, x, y, s) {
-    c.save();
-    c.translate(x, y);
-    c.scale(s, s);
-    rr(c, -20, -13, 34, 26, 3);
-    c.fill();
-    c.stroke();
-    rr(c, 14, -11, 5, 22, 1);
-    c.fill();
-    c.stroke();
-    c.fillRect(19, -4, 9, 8);
-    c.strokeRect(19, -4, 9, 8);
-    c.beginPath();
-    for (var i = -14; i <= 0; i += 5) {
-      c.moveTo(i, -13);
-      c.lineTo(i, -8);
-      c.moveTo(i, 13);
-      c.lineTo(i, 8);
-    }
-    c.stroke();
-    c.restore();
-  }
-
-  function capsule(c, x1, y1, x2, y2, w) {
-    c.lineCap = "round";
-    c.strokeStyle = "rgba(255,255,255,.9)";
-    c.lineWidth = w + 2.6;
-    c.beginPath();
-    c.moveTo(x1, y1);
-    c.lineTo(x2, y2);
-    c.stroke();
-    c.strokeStyle = BG;
-    c.lineWidth = w;
-    c.beginPath();
-    c.moveTo(x1, y1);
-    c.lineTo(x2, y2);
-    c.stroke();
-    c.strokeStyle = "rgba(255,255,255,.85)";
-    c.lineWidth = 1.4;
-    c.lineCap = "butt";
-  }
-
-  function joint(c, x, y, r) {
-    c.beginPath();
-    c.arc(x, y, r, 0, 6.283);
-    c.fill();
-    c.stroke();
-    c.beginPath();
-    c.arc(x, y, r * 0.35, 0, 6.283);
-    c.stroke();
-  }
-
-  /* Factory interior, drawn in screen space behind the line */
-  function drawFactory(c, t, y) {
-    var Wd = SWd, Hd = SHd, fl = Hd * 0.88, px = mx * -26, i, k, x;
-    var top = Hd * 0.07, bot = Hd * 0.16;
-    c.setTransform(sdpr, 0, 0, sdpr, 0, 0);
-    c.clearRect(0, 0, Wd, Hd);
-    c.lineWidth = 1;
-    c.fillStyle = "rgba(0,0,0,0)";
-
-    // Roof truss
-    c.strokeStyle = "rgba(255,255,255,.16)";
-    c.beginPath();
-    c.moveTo(0, top);
-    c.lineTo(Wd, top);
-    c.moveTo(0, bot);
-    c.lineTo(Wd, bot);
-    for (x = -90 + (px % 90); x < Wd + 90; x += 90) {
-      c.moveTo(x, bot);
-      c.lineTo(x + 45, top);
-      c.lineTo(x + 90, bot);
-    }
-    c.stroke();
-
-    // Windows on the back wall (between columns)
-    for (i = 0; i < 5; i++) {
-      var wx = Wd * (0.08 + 0.22 * i) + px + 28, ww = Wd * 0.22 - 56, wy = Hd * 0.27, wh = Hd * 0.22;
-      var lit = 0.02 + 0.025 * (0.5 + 0.5 * Math.sin(t * 0.0006 + i * 2.1));
-      c.fillStyle = "rgba(255,255,255," + lit.toFixed(3) + ")";
-      c.fillRect(wx, wy, ww, wh);
-      c.strokeStyle = "rgba(255,255,255,.13)";
-      c.strokeRect(wx, wy, ww, wh);
-      c.beginPath();
-      for (k = 1; k < 4; k++) {
-        c.moveTo(wx + ww * k / 4, wy);
-        c.lineTo(wx + ww * k / 4, wy + wh);
-      }
-      c.moveTo(wx, wy + wh * 0.5);
-      c.lineTo(wx + ww, wy + wh * 0.5);
-      c.stroke();
-    }
-
-    // Steel columns
-    c.strokeStyle = "rgba(255,255,255,.13)";
-    c.beginPath();
-    for (i = 0; i < 5; i++) {
-      x = Wd * (0.08 + 0.22 * i) + px;
-      c.moveTo(x - 7, bot);
-      c.lineTo(x - 7, fl);
-      c.moveTo(x + 7, bot);
-      c.lineTo(x + 7, fl);
-      c.moveTo(x - 13, fl);
-      c.lineTo(x + 13, fl);
-      for (k = bot + 50; k < fl; k += 60) {
-        c.moveTo(x - 7, k);
-        c.lineTo(x + 7, k + 14);
-      }
-    }
-    c.stroke();
-
-    // Wall gears (turn with time and scroll)
-    var ang = t * 0.00022 + y * 0.0007;
-    c.strokeStyle = "rgba(255,255,255,.2)";
-    c.save();
-    c.translate(Wd * 0.12, Hd * 0.37);
-    c.scale(0.8, 0.8);
-    c.rotate(ang);
-    c.stroke(gBig);
-    c.beginPath();
-    c.arc(0, 0, 30, 0, 6.283);
-    c.stroke();
-    c.restore();
-
-    c.save();
-    c.translate(Wd * 0.12 + 130, Hd * 0.37 - 80);
-    c.scale(0.8, 0.8);
-    c.rotate(-ang * 20 / 12 + 0.26);
-    c.stroke(gSmall);
-    c.beginPath();
-    c.arc(0, 0, 18, 0, 6.283);
-    c.stroke();
-    c.restore();
-
-    // Pipe run with flowing dashes
-    c.strokeStyle = "rgba(255,255,255,.15)";
-    c.beginPath();
-    c.moveTo(0, Hd * 0.212);
-    c.lineTo(Wd, Hd * 0.212);
-    c.moveTo(0, Hd * 0.236);
-    c.lineTo(Wd, Hd * 0.236);
-    for (i = 0; i < 5; i++) {
-      x = Wd * (0.08 + 0.22 * i) + px + 40;
-      c.moveTo(x, Hd * 0.236);
-      c.lineTo(x, Hd * 0.3);
-      c.lineTo(x + 18, Hd * 0.3);
-    }
-    c.stroke();
-    c.save();
-    c.setLineDash([8, 24]);
-    c.lineDashOffset = -((t * 0.03) % 32);
-    c.strokeStyle = "rgba(255,255,255,.42)";
-    c.beginPath();
-    c.moveTo(0, Hd * 0.224);
-    c.lineTo(Wd, Hd * 0.224);
-    c.stroke();
-    c.restore();
-
-    // Overhead crane: rail, trolley, swinging cable and crate
-    var cy0 = Hd * 0.19;
-    c.strokeStyle = "rgba(255,255,255,.2)";
-    c.beginPath();
-    c.moveTo(0, cy0);
-    c.lineTo(Wd, cy0);
-    c.stroke();
-    var bx = Wd * (0.5 + 0.36 * Math.sin(t * 0.00011)) + px;
-    var len = Hd * 0.09 + Hd * 0.03 * Math.sin(t * 0.0005), sw = Math.sin(t * 0.0008) * 7;
-    c.strokeStyle = "rgba(255,255,255,.42)";
-    c.fillStyle = BG;
-    rr(c, bx - 26, cy0 - 7, 52, 14, 3);
-    c.fill();
-    c.stroke();
-    c.beginPath();
-    c.arc(bx - 16, cy0 + 7, 3, 0, 6.283);
-    c.arc(bx + 16, cy0 + 7, 3, 0, 6.283);
-    c.stroke();
-    c.beginPath();
-    c.moveTo(bx, cy0 + 7);
-    c.lineTo(bx + sw, cy0 + len);
-    c.stroke();
-    c.beginPath();
-    c.arc(bx + sw, cy0 + len + 5, 5, 0, 6.283);
-    c.stroke();
-    c.strokeRect(bx + sw - 30, cy0 + len + 10, 60, 38);
-    c.beginPath();
-    c.moveTo(bx + sw - 30, cy0 + len + 10);
-    c.lineTo(bx + sw + 30, cy0 + len + 48);
-    c.moveTo(bx + sw + 30, cy0 + len + 10);
-    c.lineTo(bx + sw - 30, cy0 + len + 48);
-    c.stroke();
-
-    // Hanging lamps with soft light cones
-    for (i = 0; i < 4; i++) {
-      var lx = Wd * (0.18 + 0.22 * i) + px * 1.2, ly = bot + Hd * 0.035;
-      var fk = i === 2 ? 0.6 + 0.4 * Math.abs(Math.sin(t * 0.013) * Math.sin(t * 0.0031)) : 1;
-      var gr = c.createLinearGradient(0, ly + 16, 0, fl);
-      gr.addColorStop(0, "rgba(255,255,255," + (0.07 * fk).toFixed(3) + ")");
-      gr.addColorStop(1, "rgba(255,255,255,0)");
-      c.fillStyle = gr;
-      c.beginPath();
-      c.moveTo(lx - 22, ly + 16);
-      c.lineTo(lx + 22, ly + 16);
-      c.lineTo(lx + 190, fl);
-      c.lineTo(lx - 190, fl);
-      c.closePath();
-      c.fill();
-      c.strokeStyle = "rgba(255,255,255,.3)";
-      c.beginPath();
-      c.moveTo(lx, bot);
-      c.lineTo(lx, ly);
-      c.moveTo(lx - 14, ly);
-      c.lineTo(lx + 14, ly);
-      c.lineTo(lx + 22, ly + 16);
-      c.lineTo(lx - 22, ly + 16);
-      c.closePath();
-      c.stroke();
-    }
-
-    // Floor lines in perspective
-    c.strokeStyle = "rgba(255,255,255,.08)";
-    c.beginPath();
-    for (k = -10; k <= 10; k++) {
-      c.moveTo(Wd / 2 + k * 40, fl);
-      c.lineTo(Wd / 2 + k * Wd * 0.11 + px * 2, Hd);
-    }
-    for (k = 1; k <= 5; k++) {
-      var fy = fl + (Hd - fl) * Math.pow(k / 5, 2);
-      c.moveTo(0, fy);
-      c.lineTo(Wd, fy);
-    }
-    c.stroke();
-  }
-
-  /* Conveyor line, drawn in scene space (1100 x ~430) scaled to the screen */
-  function convDraw(c, y) {
-    var T = C.truck, A = C.arm, i, x;
-    var ox = (SWd - LW * S) / 2 + mx * -40, fl = SHd * 0.88, oy = fl - 367 * S + Math.sin(y / 2200) * 14;
-    c.setTransform(sdpr * S, 0, 0, sdpr * S, sdpr * ox, sdpr * oy);
-    var xs0 = -ox / S - 20, xs1 = (SWd - ox) / S + 20;
-    c.lineWidth = 1.4;
-    c.strokeStyle = "rgba(255,255,255,.85)";
-    c.fillStyle = BG;
-    c.font = "9px 'JetBrains Mono', monospace";
-
-    // Floor
-    c.save();
-    c.setLineDash([8, 10]);
-    c.strokeStyle = "rgba(255,255,255,.35)";
-    c.beginPath();
-    c.moveTo(xs0, 367);
-    c.lineTo(xs1, 367);
-    c.stroke();
-    c.restore();
-
-    // Belt legs and body
-    c.beginPath();
-    [80, 340, 600].forEach(function (lx) {
-      c.moveTo(lx, 310);
-      c.lineTo(lx, 367);
-      c.moveTo(lx - 14, 367);
-      c.lineTo(lx + 14, 367);
-    });
-    c.stroke();
-    rr(c, BX0, BY, BX1 - BX0, 18, 9);
-    c.fill();
-    c.stroke();
-    c.save();
-    c.strokeStyle = "rgba(255,255,255,.4)";
-    c.beginPath();
-    for (x = BX0 + 14 + (C.belt % 24); x < BX1 - 14; x += 24) {
-      c.moveTo(x, BY);
-      c.lineTo(x, BY + 4);
-    }
-    c.stroke();
-    c.restore();
-
-    for (x = 60; x <= 610; x += 70) {
-      c.beginPath();
-      c.arc(x, 301, 6, 0, 6.283);
-      c.stroke();
-      c.beginPath();
-      c.moveTo(x, 301);
-      c.lineTo(x + Math.cos(C.spin) * 6, 301 + Math.sin(C.spin) * 6);
-      c.stroke();
-    }
-
-    // Servo motors under the belt
-    SERVOS.forEach(function (sx, n) {
-      c.beginPath();
-      c.moveTo(sx - 4, 310);
-      c.lineTo(sx - 4, 322);
-      c.moveTo(sx + 4, 310);
-      c.lineTo(sx + 4, 322);
-      c.stroke();
-      rr(c, sx - 26, 322, 52, 32, 4);
-      c.fill();
-      c.stroke();
-      c.beginPath();
-      c.moveTo(sx + 10, 322);
-      c.lineTo(sx + 10, 354);
-      c.moveTo(sx + 16, 322);
-      c.lineTo(sx + 16, 354);
-      c.moveTo(sx + 22, 322);
-      c.lineTo(sx + 22, 354);
-      c.stroke();
-      c.beginPath();
-      c.arc(sx - 10, 338, 9, 0, 6.283);
-      c.stroke();
-      c.beginPath();
-      c.moveTo(sx - 10, 338);
-      c.lineTo(sx - 10 + Math.cos(C.spin * 2) * 9, 338 + Math.sin(C.spin * 2) * 9);
-      c.stroke();
-      c.fillStyle = "rgba(255,255,255,.5)";
-      c.fillText("SERVO " + (n + 1), sx - 22, 384);
-      c.fillStyle = BG;
-    });
-    c.fillStyle = "rgba(255,255,255,.5)";
-    c.fillText("CONVEYOR", BX0, 404);
-    c.fillText("PICK AND PLACE ARM", 640, 404);
-    c.fillStyle = BG;
-
-    C.items.forEach(function (it) {
-      motor(c, it.x, BY - 15, 1);
-    });
-
-    // Robot arm
-    c.beginPath();
-    c.moveTo(656, 367);
-    c.lineTo(656, 352);
-    c.lineTo(724, 352);
-    c.lineTo(724, 367);
-    c.stroke();
-    rr(c, 666, 340, 48, 12, 2);
-    c.fill();
-    c.stroke();
-    var wx = A.x, wy = A.y - 22, dx = wx - SHLD[0], dy = wy - SHLD[1];
-    var d = Math.min(Math.hypot(dx, dy), L1 + L2 - 0.5), a = Math.atan2(dy, dx);
-    var b = Math.acos(clamp((d * d + L1 * L1 - L2 * L2) / (2 * d * L1), -1, 1));
-    var e1 = [SHLD[0] + L1 * Math.cos(a + b), SHLD[1] + L1 * Math.sin(a + b)];
-    var e2 = [SHLD[0] + L1 * Math.cos(a - b), SHLD[1] + L1 * Math.sin(a - b)];
-    var E = e1[1] < e2[1] ? e1 : e2;
-    capsule(c, SHLD[0], SHLD[1], E[0], E[1], 13);
-    capsule(c, E[0], E[1], wx, wy, 11);
-    joint(c, SHLD[0], SHLD[1], 10);
-    joint(c, E[0], E[1], 8);
-    joint(c, wx, wy, 6);
-    var gap = A.held ? 17 : 23, ty = A.y;
-    c.fillRect(wx - 5, wy, 10, 12);
-    c.strokeRect(wx - 5, wy, 10, 12);
-    c.beginPath();
-    c.moveTo(wx - gap, ty - 10);
-    c.lineTo(wx - gap, ty + 9);
-    c.lineTo(wx - gap + 5, ty + 9);
-    c.moveTo(wx + gap, ty - 10);
-    c.lineTo(wx + gap, ty + 9);
-    c.lineTo(wx + gap - 5, ty + 9);
-    c.moveTo(wx - gap, ty - 10);
-    c.lineTo(wx + gap, ty - 10);
-    c.stroke();
-    if (A.held) {
-      var hs = 1 - 0.25 * clamp((A.x - PICK) / (SLOTS[0] - PICK), 0, 1);
-      motor(c, A.x, A.y + 15 * hs, hs);
-    }
-
-    // Truck
-    c.save();
-    c.translate(T.x, 0);
-    rr(c, 780, 300, 180, 38, 2);
-    c.fill();
-    c.stroke();
-    for (i = 0; i < T.items; i++) {
-      motor(c, SLOTS[i], 327, 0.75);
-    }
-    c.beginPath();
-    c.moveTo(960, 338);
-    c.lineTo(960, 304);
-    c.lineTo(1004, 304);
-    c.lineTo(1040, 326);
-    c.lineTo(1040, 338);
-    c.closePath();
-    c.fill();
-    c.stroke();
-    c.beginPath();
-    c.moveTo(968, 311);
-    c.lineTo(1000, 311);
-    c.lineTo(1022, 325);
-    c.lineTo(968, 325);
-    c.closePath();
-    c.stroke();
-    [812, 900, 1006].forEach(function (wxx) {
-      c.beginPath();
-      c.arc(wxx, 352, 15, 0, 6.283);
-      c.fill();
-      c.stroke();
-      c.beginPath();
-      c.arc(wxx, 352, 5, 0, 6.283);
-      c.stroke();
-      var r = -T.x * 0.07;
-      c.beginPath();
-      for (var k = 0; k < 3; k++) {
-        c.moveTo(wxx, 352);
-        c.lineTo(wxx + Math.cos(r + k * 2.094) * 14, 352 + Math.sin(r + k * 2.094) * 14);
-      }
-      c.stroke();
-    });
-    c.fillStyle = "rgba(255,255,255,.5)";
-    c.fillText("TRUCK", 850, 404);
-    c.restore();
-  }
-
-  /* ---------- Frame loop ---------- */
-  var lastT = 0;
-
-  function frame(time) {
-    var dt = Math.min(0.05, (time - lastT) / 1000 || 0.016);
-    lastT = time;
-    stepScroll();
-    var y = window.scrollY;
-    mx += (mouseX - 0.5 - mx) * 0.05;
-    my += (mouseY - 0.5 - my) * 0.05;
-
-    // Wallpaper
-    convUpdate(reduce ? 0 : dt);
-    drawFactory(g, time, y);
-    convDraw(g, y);
-
-    // Section layers with inertia for smooth parallax
-    if (!reduce) {
-      layers.forEach(function (el) {
-        var s = parseFloat(el.getAttribute("data-speed")), d = el._c - (y + vh / 2);
-        if (Math.abs(d) > vh * 1.6) {
-          el.style.transform = "";
-          el._o = undefined;
-          return;
-        }
-        var t = -d * s;
-        el._o = el._o === undefined ? t : el._o + (t - el._o) * 0.1;
-        var x = (el.classList.contains("deco") || el.classList.contains("chip")) ? mx * s * -140 : 0;
-        el.style.transform = "translate3d(" + x + "px," + el._o + "px,0)";
-      });
-    }
-
-    // Process: sticky split screen
-    var pp = clamp((y - process._t) / (process.offsetHeight - vh), 0, 1);
-    var u = pp * 4, idx = clamp(Math.floor(u), 0, 3);
-    setShape(idx);
-    termLines.forEach(function (li, i) {
-      li.classList.toggle("on", i === idx);
-    });
-    steps.forEach(function (st, i) {
-      var l = u - i, inn = smooth(clamp(l / 0.18, 0, 1)), out = i === 3 ? 0 : smooth(clamp((l - 0.82) / 0.18, 0, 1));
-      st.style.opacity = inn * (1 - out);
-      st.style.transform = "translateY(calc(-50% + " + ((1 - inn) * 60 - out * 60) + "px))";
-    });
-    var pr = process.getBoundingClientRect();
-    if (pr.bottom > 0 && pr.top < vh) drawParticles(time);
-
-    // Certificate stories
-    stories.forEach(function (st) {
-      var top = st._t - y;
-      if (top < -st.offsetHeight - 60 || top > vh + 60) return;
-      var p = clamp(-top / (st.offsetHeight - vh), 0, 1);
-      var fr = st.querySelector(".frame"), txt = st.querySelector(".ctext"), parts = txt.children;
-      if (reduce) return;
-      var enter = ease(clamp(p / 0.28, 0, 1)), exit = ease(clamp((p - 0.86) / 0.14, 0, 1));
-      var ta = 0;
-      fr.style.opacity = enter * (1 - exit);
-      fr.style.transform = "translate3d(" + (mx * 20) + "px," + ((1 - enter) * 140 - exit * 120) + "px,0) rotateY(" + ((0.5 - p) * 16 + mx * 8) + "deg) rotateX(" + (my * -6 + (1 - enter) * 10) + "deg)";
-      var starts = [0.34, 0.42, 0.5, 0.58, 0.66];
-      for (var i = 0; i < parts.length; i++) {
-        var t = ease(clamp((p - starts[i]) / 0.1, 0, 1));
-        if (i === 0) ta = t * (1 - exit);
-        parts[i].style.opacity = t * (1 - exit);
-        parts[i].style.transform = "translate3d(0," + ((1 - t) * 26 - exit * 60) + "px,0)";
-      }
-      txt.style.setProperty("--ta", ta.toFixed(3));
-      txt.style.transform = "translate3d(0," + ((0.5 - p) * -30) + "px,0)";
-    });
-
-    // Lightning cursor and sparks
-    cx += (mouseX * window.innerWidth - cx) * 0.2;
-    cy += (mouseY * window.innerHeight - cy) * 0.2;
-    ks += ((hot ? 1.5 : 1) - ks) * 0.15;
-    if (cursor) {
-      cursor.style.transform = "translate3d(" + cx + "px," + cy + "px,0) rotate(-12deg) scale(" + ks.toFixed(3) + ")";
-    }
-    drawSparks();
-
-    // Thunder scroll bar
-    updateRail(time, y);
-
-    requestAnimationFrame(frame);
-  }
-
-  /* ---------- Events ---------- */
-  window.addEventListener("mousemove", function (e) {
-    mouseX = e.clientX / window.innerWidth;
-    mouseY = e.clientY / window.innerHeight;
-    if (cursor) cursor.classList.add("on");
-    if (fine && Math.hypot(e.clientX - lx, e.clientY - ly) > 14) {
-      emit(e.clientX, e.clientY, 2, 2.2);
-    }
-    lx = e.clientX;
-    ly = e.clientY;
-  });
-
-  window.addEventListener("click", function (e) {
-    if (fine) emit(e.clientX, e.clientY, 16, 5);
-  });
-
-  if (fine) {
-    doc.classList.add("has-cursor");
-    document.querySelectorAll("a,.btn,.pills li").forEach(function (el) {
-      el.addEventListener("mouseenter", function () { hot = true; });
-      el.addEventListener("mouseleave", function () { hot = false; });
-    });
-  } else if (cursor) {
-    cursor.style.display = "none";
-    sk.style.display = "none";
-  }
-
-  window.addEventListener("resize", measure);
-  window.addEventListener("load", function () {
-    measure();
-    requestAnimationFrame(function () {
-      doc.classList.add("loaded");
-    });
-  });
-
-  document.querySelectorAll('a[href^="#"]').forEach(function (a) {
-    a.addEventListener("click", function (e) {
-      var t = document.querySelector(a.getAttribute("href"));
-      if (!t) return;
-      e.preventDefault();
-      tgt = clamp(t.getBoundingClientRect().top + window.scrollY, 0, maxScroll());
-      if (reduce || !fine) window.scrollTo({ top: tgt, behavior: "smooth" });
-    });
-  });
-
-  var io = new IntersectionObserver(function (es) {
-    es.forEach(function (e) {
-      if (e.isIntersecting) {
-        e.target.classList.add("in");
-        io.unobserve(e.target);
-      }
-    });
-  }, { threshold: 0.15 });
-
-  document.querySelectorAll(".rv").forEach(function (el) {
-    io.observe(el);
-  });
-
-  measure();
-  requestAnimationFrame(frame);
-})();
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mohammed Rayan Afzal | Electrical &amp; Automation Engineering</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800;900&family=Inter+Tight:wght@400;500&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+<script>document.documentElement.classList.add("js")</script>
+<link rel="stylesheet" href="./AFZAL.css">
+</head>
+<body>
+
+<div class="cursor" aria-hidden="true">
+  <svg viewBox="0 0 24 24"><path d="M13.5 1.5 4 13.5h6.2L9 22.5l10-12.7h-6.4z"/></svg>
+</div>
+<canvas id="bolts" aria-hidden="true"></canvas>
+<canvas id="sparks" aria-hidden="true"></canvas>
+
+<div class="thunder-rail" aria-hidden="true">
+  <div class="tr-track">
+    <i class="tr-fill"></i>
+    <svg class="tr-thumb" viewBox="0 0 24 24"><path d="M13.5 1.5 4 13.5h6.2L9 22.5l10-12.7h-6.4z"/></svg>
+  </div>
+  <span class="tr-pct mono">00</span>
+</div>
+
+<div class="bg" aria-hidden="true"><div class="bg-grid"></div></div>
+<canvas id="scene" aria-hidden="true"></canvas>
+<div class="status mono"><i></i><span id="cstat">Conveyor running, servo drives on</span></div>
+
+<header class="nav">
+  <a href="#hero" class="brand">M. Rayan Afzal</a>
+  <nav>
+    <a href="#profile">Profile</a>
+    <a href="#process">System</a>
+    <a href="#projects">Projects</a>
+    <a href="#credentials">Certificates</a>
+    <a href="#stack">Stack</a>
+    <a href="#how">Line</a>
+    <a href="#contact">GitHub</a>
+  </nav>
+</header>
+
+<main>
+<section id="hero" class="hero">
+  <span class="chip c1" data-speed="-0.16">24 V DC</span>
+  <span class="chip c2" data-speed="-0.28">I0.0</span>
+
+  <p class="mono intro-fade" data-speed="-0.05">Electrical &amp; Electronics Engineering, BMSIT, 2027</p>
+  <h1>
+    <span class="ln" data-speed="0.015"><i class="mk"><b>Mohammed</b></i></span>
+    <span class="ln" data-speed="0.05"><i class="mk"><b>Rayan</b></i></span>
+    <span class="ln" data-speed="0.09"><i class="mk"><b>Afzal</b></i></span>
+  </h1>
+  <p class="sub intro-fade" data-speed="0.03">Industrial automation, Siemens PLC and control systems.</p>
+  <aside class="glass hero-card intro-fade" data-speed="-0.1">
+    <p class="mono">Automation toolchain</p>
+    <ul class="kv">
+      <li><span>PLC</span><b>S7-1200</b></li>
+      <li><span>Software</span><b>TIA Portal V20</b></li>
+      <li><span>HMI</span><b>WinCC</b></li>
+      <li><span>Simulation</span><b>PLCSIM Advanced</b></li>
+    </ul>
+  </aside>
+  <p class="scroll-ind mono">Scroll</p>
+</section>
+
+<section id="profile" class="sec profile">
+  <svg class="deco ladder" data-speed="0.16" viewBox="0 0 400 420">
+    <path d="M40 10V410M360 10V410"/>
+    <path d="M40 60H140M180 60H360M140 40V80M180 40V80"/>
+    <path d="M40 150H120M160 150H250M290 150H360M120 130V170M160 130V170"/><circle cx="270" cy="150" r="20" class="o"/>
+    <path d="M40 240H180M220 240H360M180 220V260M220 220V260"/>
+    <path d="M40 330H100M140 330H240M280 330H360M100 310V350M140 310V350"/><circle cx="260" cy="330" r="20" class="o"/>
+  </svg>
+  <div class="glass panel" data-speed="0.03">
+    <p class="mono">01 / Profile</p>
+    <h2 class="rv">Electrical engineering student working in industrial automation and control.</h2>
+    <p class="rv">I am an Electrical &amp; Electronics Engineering student, graduating in 2027. I program Siemens S7-1200 PLCs in TIA Portal and build ladder logic, WinCC HMIs and sensor-driven control for real hardware. Alongside automation I work in MATLAB and Simulink on battery and power electronics modeling, and in Python on machine learning.</p>
+  </div>
+  <div class="glass panel index" data-speed="-0.05">
+    <p class="mono">Technical index</p>
+    <ul class="kv">
+      <li><span>PLC</span><b>S7-1200</b></li>
+      <li><span>Software</span><b>TIA V20</b></li>
+      <li><span>HMI</span><b>WinCC</b></li>
+      <li><span>Simulation</span><b>PLCSIM</b></li>
+      <li><span>Modeling</span><b>MATLAB</b></li>
+      <li><span>CAD</span><b>AutoCAD</b></li>
+    </ul>
+  </div>
+</section>
+
+<section id="process" class="process">
+  <div class="pstage">
+    <div class="pleft">
+      <canvas id="pc" aria-hidden="true"></canvas>
+      <div class="pcap">
+        <p class="mono kick">How my ASRS runs</p>
+        <h2 class="mega">From signal to motion.</h2>
+        <ul class="term mono">
+          <li>reading position from proximity sensors and limit switches</li>
+          <li>running ladder logic written in TIA Portal V20</li>
+          <li>driving the motors and the box-pushing actuator</li>
+          <li>monitoring the system on a WinCC HMI</li>
+        </ul>
+      </div>
+    </div>
+    <div class="pright">
+      <div class="pstep"><span class="mono">01</span><h3 class="mega">Sense</h3><p>Proximity sensors and limit switches report position to the PLC digital inputs.</p></div>
+      <div class="pstep"><span class="mono">02</span><h3 class="mega">Program</h3><p>Ladder logic turns that feedback into storage and retrieval sequences, tested in PLCSIM Advanced.</p></div>
+      <div class="pstep"><span class="mono">03</span><h3 class="mega">Actuate</h3><p>The PLC drives the X and Y axis motors and the actuator that pushes each box.</p></div>
+      <div class="pstep"><span class="mono">04</span><h3 class="mega">Monitor</h3><p>A WinCC HMI gives the operator control and live status of the system.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="projects" class="sec">
+  <svg class="deco gear g-proj" data-teeth="12" viewBox="-100 -100 200 200" data-speed="0.12"></svg>
+  <svg class="deco trace" data-speed="0.18" viewBox="0 0 500 700">
+    <path d="M20 40H200L240 80V260H420"/><path d="M20 140H120L160 180V420H300L340 460H480"/><path d="M60 700V560H260L300 520V340"/><path d="M380 40V160H480"/>
+    <circle cx="200" cy="40" r="6"/><circle cx="420" cy="260" r="6"/><circle cx="480" cy="460" r="6"/><circle cx="300" cy="340" r="6"/><circle cx="480" cy="160" r="6"/>
+  </svg>
+  <p class="mono">02 / Projects</p>
+  <h2 class="mega rv">projects</h2>
+
+  <article class="glass project asrs-project" data-speed="0.025">
+    <div class="visual" data-speed="-0.05">
+      <div class="asrs" role="img" aria-label="Front-view animated ASRS schematic: PLC connected to Tower A and Tower B, each with two storage levels, and a moving X and Y carriage">
+        <svg class="asrs-wire" viewBox="0 0 1000 400" preserveAspectRatio="none" aria-hidden="true">
+          <path d="M340 202H430L535 286H634"/>
+          <path d="M340 210H426L531 294H634"/>
+        </svg>
+        <div class="asrs-plc" aria-hidden="true">
+          <span>Programmable Logic<br>Controller</span>
+        </div>
+        <span class="asrs-front-label" aria-hidden="true">FRONT VIEW</span>
+        <div class="asrs-machine" aria-hidden="true">
+          <div class="asrs-tower tower-a">
+            <span class="asrs-name">TOWER A</span>
+            <div class="asrs-level level-two"><span>LEVEL 2</span><i class="asrs-sensor"></i><i class="asrs-box"></i></div>
+            <div class="asrs-level level-one"><span>LEVEL 1</span><i class="asrs-sensor"></i><i class="asrs-box"></i></div>
+          </div>
+          <div class="asrs-tower tower-b">
+            <span class="asrs-name">TOWER B</span>
+            <div class="asrs-level level-two"><span>LEVEL 2</span><i class="asrs-sensor"></i><i class="asrs-box"></i></div>
+            <div class="asrs-level level-one"><span>LEVEL 1</span><i class="asrs-sensor"></i><i class="asrs-box"></i></div>
+          </div>
+          <div class="asrs-base"><span>BASE</span></div>
+          <div class="asrs-x-rod"><i class="asrs-x-motor"></i></div>
+          <div class="asrs-mover">
+            <i class="asrs-mast"></i>
+            <i class="asrs-lift"><i class="asrs-pusher"></i><i class="asrs-payload"></i></i>
+          </div>
+          <span class="asrs-axis-label x-label">X AXIS · MOTOR DRIVE</span>
+          <span class="asrs-axis-label y-label">Y AXIS</span>
+        </div>
+        <span class="asrs-mode" aria-hidden="true">STORE <b>↔</b> RETRIEVE</span>
+      </div>
+    </div>
+    <div class="txt">
+      <p class="mono">Project 1</p>
+      <h3>PLC-Based Automated Storage and Retrieval System</h3>
+      <p>A two-tower storage and retrieval prototype run by a Siemens S7-1200 PLC. Ladder logic in TIA Portal V20 drives X-axis and Y-axis motion, a box-pushing actuator and four storage positions, with proximity sensors and limit switches giving position feedback. A WinCC HMI provides operator control, and the logic was tested in PLCSIM Advanced.</p>
+      <ul class="tags"><li>S7-1200</li><li>TIA Portal V20</li><li>Ladder Logic</li><li>WinCC</li><li>Sensors</li><li>Motors</li></ul>
+    </div>
+  </article>
+
+  <article class="glass project flip" data-speed="0.025">
+    <div class="visual" data-speed="-0.05">
+      <svg class="rain-chart" viewBox="0 0 800 500" role="img" aria-labelledby="rain-chart-title rain-chart-desc">
+        <title id="rain-chart-title">Illustrative rainfall trend, 1995 to 2025</title>
+        <desc id="rain-chart-desc">An animated, gently fluctuating trend line rises over time. It is a visual illustration, not measured rainfall data.</desc>
+        <defs>
+          <linearGradient id="rain-area" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#f4f4f5" stop-opacity=".24"/>
+            <stop offset="100%" stop-color="#f4f4f5" stop-opacity="0"/>
+          </linearGradient>
+          <filter id="rain-glow" x="-100%" y="-100%" width="300%" height="300%">
+            <feGaussianBlur stdDeviation="5" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
+        <text class="chart-kicker" x="58" y="42">RAINFALL TREND</text>
+        <text class="chart-note" x="742" y="42" text-anchor="end">ILLUSTRATIVE · 1995–2025</text>
+        <g class="chart-grid" aria-hidden="true">
+          <path d="M70 100H750 M70 165H750 M70 230H750 M70 295H750 M70 360H750"/>
+          <path d="M70 100V360 M183 100V360 M296 100V360 M410 100V360 M523 100V360 M636 100V360 M750 100V360"/>
+        </g>
+        <g class="chart-y-labels" aria-hidden="true">
+          <text x="58" y="104" text-anchor="end">HIGH</text>
+          <text x="58" y="234" text-anchor="end">MID</text>
+          <text x="58" y="364" text-anchor="end">LOW</text>
+        </g>
+        <path class="rain-area" d="M70 320 C105 310 128 326 160 300 S218 280 240 290 S290 266 318 270 S366 247 390 258 S442 222 466 238 S516 216 544 220 S596 184 620 202 S674 166 700 178 S730 150 750 142 L750 360 L70 360 Z"/>
+        <path class="rain-trend" id="rainfall-trend-path" d="M70 320 C105 310 128 326 160 300 S218 280 240 290 S290 266 318 270 S366 247 390 258 S442 222 466 238 S516 216 544 220 S596 184 620 202 S674 166 700 178 S730 150 750 142"/>
+        <path class="rain-trend-flow" d="M70 320 C105 310 128 326 160 300 S218 280 240 290 S290 266 318 270 S366 247 390 258 S442 222 466 238 S516 216 544 220 S596 184 620 202 S674 166 700 178 S730 150 750 142" aria-hidden="true"/>
+        <circle class="rain-marker-halo" cx="70" cy="320" r="12" aria-hidden="true">
+          <animateMotion dur="12s" repeatCount="indefinite" rotate="auto">
+            <mpath href="#rainfall-trend-path"/>
+          </animateMotion>
+        </circle>
+        <circle class="rain-marker" cx="70" cy="320" r="4" aria-hidden="true">
+          <animateMotion dur="12s" repeatCount="indefinite" rotate="auto">
+            <mpath href="#rainfall-trend-path"/>
+          </animateMotion>
+        </circle>
+        <g class="chart-years" aria-hidden="true">
+          <text x="70" y="392" text-anchor="middle">1995</text>
+          <text x="183" y="392" text-anchor="middle">2000</text>
+          <text x="296" y="392" text-anchor="middle">2005</text>
+          <text x="410" y="392" text-anchor="middle">2010</text>
+          <text x="523" y="392" text-anchor="middle">2015</text>
+          <text x="636" y="392" text-anchor="middle">2020</text>
+          <text x="750" y="392" text-anchor="middle">2025</text>
+        </g>
+        <text class="chart-axis-title" x="410" y="448" text-anchor="middle">YEAR</text>
+        <g class="chart-legend" aria-hidden="true">
+          <path d="M300 478H336"/>
+          <text x="346" y="482">ILLUSTRATIVE TREND</text>
+        </g>
+      </svg>
+    </div>
+    <div class="txt">
+      <p class="mono">Project 2</p>
+      <h3>Rainfall Prediction</h3>
+      <p>Predicts rainfall from meteorological features in NASA POWER data covering 1995 to 2025. Correlation analysis and PCA prepare the features, and Decision Tree, Random Forest and XGBoost models are trained and evaluated.</p>
+      <ul class="tags"><li>Python</li><li>NASA POWER</li><li>XGBoost</li><li>Random Forest</li><li>PCA</li></ul>
+    </div>
+  </article>
+
+  <article class="glass project eis-project" data-speed="0.025">
+    <div class="visual" data-speed="-0.05">
+      <svg viewBox="0 0 300 180" class="eis" role="img" aria-labelledby="eis-title eis-desc">
+        <title id="eis-title">Illustrative electrochemical impedance spectroscopy Nyquist plot</title>
+        <desc id="eis-desc">A Nyquist-style impedance curve is drawn, zoomed to highlight its arc with a battery state-of-health callout, then returns to the full plot. The curve is illustrative, not measured data.</desc>
+        <text class="eis-heading" x="24" y="18">EIS / NYQUIST RESPONSE</text>
+        <text class="eis-units" x="274" y="18" text-anchor="end">ILLUSTRATIVE</text>
+        <g class="eis-zoom">
+          <path class="eis-axis" d="M28 146H278 M28 146V28"/>
+          <path class="eis-grid" d="M28 122H278 M28 98H278 M28 74H278 M78 28V146 M128 28V146 M178 28V146 M228 28V146"/>
+          <text class="eis-label" x="151" y="169" text-anchor="middle">REAL IMPEDANCE (Z&#8242;)</text>
+          <text class="eis-label" x="12" y="91" text-anchor="middle" transform="rotate(-90 12 91)">-IMAGINARY (Z&#8243;)</text>
+          <path class="eis-curve-base" d="M28 146 C48 146 54 82 116 65 S226 82 278 146" aria-hidden="true"/>
+          <path class="eis-curve" id="eis-curve-path" d="M28 146 C48 146 54 82 116 65 S226 82 278 146"/>
+          <path class="eis-curve-flow" d="M28 146 C48 146 54 82 116 65 S226 82 278 146" aria-hidden="true"/>
+          <circle class="eis-point eis-start" cx="28" cy="146" r="2.8"/>
+          <circle class="eis-point eis-apex" cx="116" cy="65" r="3"/>
+          <circle class="eis-point eis-end" cx="278" cy="146" r="2.8"/>
+          <circle class="eis-tracer" cx="28" cy="146" r="2.4" aria-hidden="true">
+            <animateMotion dur="4.4s" begin="3.2s" repeatCount="indefinite" rotate="auto">
+              <mpath href="#eis-curve-path"/>
+            </animateMotion>
+          </circle>
+        </g>
+        <g class="eis-callout" aria-hidden="true">
+          <rect x="67" y="23" width="166" height="31" rx="5"/>
+          <circle cx="80" cy="33" r="2.4"/>
+          <text x="87" y="35">BATTERY AGEING SIGNATURE</text>
+          <text x="80" y="46">Rint RISES  ·  Cint FALLS</text>
+        </g>
+      </svg>
+    </div>
+    <div class="txt">
+      <p class="mono">Project 3</p>
+      <h3>Battery State-of-Health Estimation using Impedance Spectroscopy</h3>
+      <p>A 5th-semester mini project on lithium-ion battery State-of-Health estimation. Impedance measurements are processed in MATLAB to produce characteristic plots that relate battery behavior to its health, with battery management systems as the intended application.</p>
+      <ul class="tags"><li>MATLAB</li><li>Impedance Spectroscopy</li><li>State of Health</li><li>BMS</li></ul>
+    </div>
+  </article>
+</section>
+
+<section id="credentials" class="sec intro">
+  <svg class="deco nyq" data-speed="0.15" viewBox="0 0 600 300">
+    <path d="M20 280C40 280 60 120 200 100S420 140 580 280"/><path d="M60 280C80 280 100 170 210 150S380 180 540 280"/><path d="M20 280H580"/>
+  </svg>
+  <p class="mono">03 / Certificates</p>
+  <h2 class="mega rv">Certificates</h2>
+  <p class="lead rv">Six MathWorks courses and one BNMIT workshop certificate.</p>
+</section>
+
+<section class="archive" id="archive"></section>
+
+<section class="sec other">
+  <div class="glass panel" data-speed="0.03">
+    <p class="mono">Workshops and training</p>
+    <ul class="plain">
+      <li>7-day FDP on PLC, HMI &amp; Industrial Automation Technologies</li>
+      <li>PLC &amp; Industrial Automation Workshop</li>
+      <li>PLC / HMI / SCADA industrial training</li>
+      <li>FANUC industrial visit</li>
+    </ul>
+  </div>
+</section>
+
+<section id="stack" class="sec stack">
+  <p class="mono">04 / Engineering stack</p>
+  <h2 class="mega rv">Tools and platforms</h2>
+  <ul class="pills">
+    <li>Siemens S7-1200</li><li>TIA Portal V20</li><li>STEP 7</li><li>PLCSIM Advanced</li><li>WinCC Advanced</li>
+    <li>Ladder Logic</li><li>Timers and Counters</li><li>Sequential Control</li><li>PLC-HMI Communication</li>
+    <li>Proximity Sensors</li><li>Limit Switches</li><li>Relays</li><li>DC Motors</li><li>Stepper Motors</li><li>Servo Motors</li><li>VFDs</li><li>24 V DC Control</li>
+    <li>MATLAB</li><li>Simulink</li><li>Simscape</li><li>AutoCAD</li><li>Proteus</li>
+    <li>Python</li><li>C</li><li>Embedded C</li><li>Machine Learning</li>
+  </ul>
+</section>
+
+<section id="how" class="sec how">
+  <p class="mono">05 / How the background works</p>
+  <h2 class="mega rv">The line behind this page</h2>
+  <p class="rv how-lead">The animation fixed behind every section is a concept sketch of a servo-driven conveyor line, a pick-and-place arm and a truck being loaded. I built it to show how a sequenced line behaves. It is not a result from one of my projects, and the ASRS above is my real PLC project. The label at the bottom right of the screen names the state the line is in.</p>
+
+  <div class="how-grid">
+    <div class="glass hcard" data-speed="0.03">
+      <span class="mono">01</span>
+      <h4>Servo drives</h4>
+      <p>The four servo motors under the belt turn the rollers, and the belt carries motor units toward the pick position at a steady speed. When the line stops, the servos stop with it.</p>
+    </div>
+    <div class="glass hcard" data-speed="-0.05">
+      <span class="mono">02</span>
+      <h4>Detection</h4>
+      <p>Units stop at the end of the belt. On a real line, a proximity sensor at that point would tell the controller that a unit is ready to be picked.</p>
+    </div>
+    <div class="glass hcard" data-speed="0.05">
+      <span class="mono">03</span>
+      <h4>Pick and place</h4>
+      <p>The arm moves over the unit, lowers, grips it, lifts, and swings to the next free slot on the truck. It lowers, releases and returns for the next one, filling four slots.</p>
+    </div>
+    <div class="glass hcard" data-speed="-0.03">
+      <span class="mono">04</span>
+      <h4>Truck full</h4>
+      <p>When the fourth motor is placed, the truck is full. The conveyor and servo drives stop, and the truck drives away.</p>
+    </div>
+    <div class="glass hcard" data-speed="0.04">
+      <span class="mono">05</span>
+      <h4>Restart</h4>
+      <p>The line stays stopped while the truck is away. When the truck returns to the loading position, the count resets and the conveyor starts again.</p>
+    </div>
+    <div class="glass hcard" data-speed="-0.06">
+      <span class="mono">06</span>
+      <h4>Factory scenery</h4>
+      <p>The crane trolley slides along its rail with a swinging load, the lamps flicker, dashes flow along the pipes, and the wall gears turn with your scroll.</p>
+    </div>
+  </div>free
+
+  <div class="glass flow" data-speed="0.02">
+    <span class="mono">Line states</span>
+    <span class="st">Running</span><i>→</i><span class="st">Truck full</span><i>→</i><span class="st">Truck leaves</span><i>→</i><span class="st">Line stopped</span><i>→</i><span class="st">Truck returns</span><i>→</i><span class="st">Running</span>
+  </div>
+</section>
+
+<section id="contact" class="sec contact">
+  <svg class="deco gear g-contact" data-teeth="14" viewBox="-100 -100 200 200" data-speed="-0.12"></svg>
+  <div class="glass panel" data-speed="0.03">
+    <p class="mono">06 / Contact</p>
+    <h2 class="rv">Code and projects are on GitHub.</h2>
+    <div class="links">
+      <a class="btn" href="https://github.com/rayan25-web" target="_blank" rel="noopener">GitHub</a>
+      <a class="btn ghost" href="https://www.linkedin.com/in/mohammed-rayan-afzal-287a85365/" target="_blank" rel="noopener">LinkedIn</a>
+    </div>
+  </div>
+  <p class="foot mono">Mohammed Rayan Afzal, Electrical &amp; Electronics Engineering, BMSIT, 2027</p>
+</section>
+</main>
+<script src="./AFZAL.js"></script>
+</body>
+</html>
