@@ -138,6 +138,146 @@
     }
   }
 
+  /* ---------- Thunder scroll bar (left side) ---------- */
+  var rail = document.querySelector(".thunder-rail");
+  var trTrack = rail.querySelector(".tr-track");
+  var trFill = rail.querySelector(".tr-fill");
+  var trThumb = rail.querySelector(".tr-thumb");
+  var trPct = rail.querySelector(".tr-pct");
+  var bc = document.getElementById("bolts"), bctx = bc.getContext("2d");
+  var bolts = [], flash = 0, lastBolt = 0, prevY = window.scrollY, rp = 0, tb = 0, bdirty = false;
+  var railTop = 0, railH = 1, railX = 20, dragging = false;
+
+  function sizeBolts() {
+    bc.width = window.innerWidth;
+    bc.height = window.innerHeight;
+  }
+
+  function measureRail() {
+    var r = trTrack.getBoundingClientRect();
+    railTop = r.top;
+    railH = Math.max(1, r.height);
+    railX = r.left + r.width / 2;
+  }
+
+  // Jagged line by random midpoint displacement
+  function jag(x0, y0, x1, y1, disp, out) {
+    if (disp < 3) {
+      out.push([x0, y0, x1, y1]);
+      return;
+    }
+    var mxp = (x0 + x1) / 2 + (Math.random() - 0.5) * disp;
+    var myp = (y0 + y1) / 2 + (Math.random() - 0.5) * disp;
+    jag(x0, y0, mxp, myp, disp / 2, out);
+    jag(mxp, myp, x1, y1, disp / 2, out);
+  }
+
+  function spawnBolt(power) {
+    var sx = railX + 6, sy = railTop + rp * railH;
+    var len = window.innerWidth * (0.16 + Math.random() * 0.2) * (0.7 + power * 0.6);
+    var ey = sy + (Math.random() - 0.3) * window.innerHeight * 0.45;
+    var main = [], segs, n, k, base, br;
+    jag(sx, sy, sx + len, ey, len * 0.35, main);
+    segs = main.slice();
+    n = 1 + Math.floor(Math.random() * 3);
+    for (k = 0; k < n; k++) {
+      base = main[Math.floor(Math.random() * main.length)];
+      br = [];
+      jag(base[0], base[1], base[0] + len * (0.2 + Math.random() * 0.3), base[1] + (Math.random() - 0.4) * len * 0.6, len * 0.18, br);
+      segs = segs.concat(br);
+    }
+    bolts.push({ s: segs, life: 1 });
+    flash = Math.min(1, flash + 0.5);
+  }
+
+  function drawBolts() {
+    var i, b, a, gr;
+    if (!bolts.length && flash <= 0) {
+      if (bdirty) {
+        bctx.clearRect(0, 0, bc.width, bc.height);
+        bdirty = false;
+      }
+      return;
+    }
+    bdirty = true;
+    bctx.clearRect(0, 0, bc.width, bc.height);
+    if (flash > 0) {
+      gr = bctx.createLinearGradient(0, 0, bc.width * 0.45, 0);
+      gr.addColorStop(0, "rgba(220,230,255," + (0.12 * flash).toFixed(3) + ")");
+      gr.addColorStop(1, "rgba(220,230,255,0)");
+      bctx.fillStyle = gr;
+      bctx.fillRect(0, 0, bc.width * 0.45, bc.height);
+      flash *= 0.86;
+      if (flash < 0.01) flash = 0;
+    }
+    bctx.lineJoin = "round";
+    bctx.lineCap = "round";
+    for (i = bolts.length - 1; i >= 0; i--) {
+      b = bolts[i];
+      b.life -= 0.065;
+      if (b.life <= 0) {
+        bolts.splice(i, 1);
+        continue;
+      }
+      a = b.life * (0.6 + 0.4 * Math.random());
+      bctx.beginPath();
+      b.s.forEach(function (seg) {
+        bctx.moveTo(seg[0], seg[1]);
+        bctx.lineTo(seg[2], seg[3]);
+      });
+      bctx.strokeStyle = "rgba(170,190,255," + (0.2 * a).toFixed(3) + ")";
+      bctx.lineWidth = 7;
+      bctx.stroke();
+      bctx.strokeStyle = "rgba(255,255,255," + a.toFixed(3) + ")";
+      bctx.lineWidth = 1.6;
+      bctx.stroke();
+    }
+  }
+
+  function updateRail(time, y) {
+    var vel = y - prevY, maxS = maxScroll(), frac = maxS > 0 ? y / maxS : 0, pc;
+    prevY = y;
+    rp += (frac - rp) * 0.14;
+    tb += (clamp(Math.abs(vel) / 50, 0, 0.7) - tb) * 0.2;
+    trFill.style.height = (rp * 100).toFixed(2) + "%";
+    trThumb.style.transform = "translate3d(0," + (rp * railH).toFixed(1) + "px,0) rotate(-12deg) scale(" + (1 + tb).toFixed(3) + ")";
+    trThumb.style.setProperty("--g", tb.toFixed(2));
+    pc = Math.round(rp * 100);
+    trPct.textContent = pc < 10 ? "0" + pc : "" + pc;
+
+    // Thunder when scrolling down
+    if (!reduce && vel > 5 && time - lastBolt > clamp(420 - vel * 9, 130, 420)) {
+      spawnBolt(clamp(vel / 40, 0.2, 1));
+      if (vel > 22) spawnBolt(clamp(vel / 40, 0.2, 1));
+      lastBolt = time;
+    }
+    drawBolts();
+  }
+
+  function railTo(e) {
+    var r = trTrack.getBoundingClientRect();
+    var f = clamp((e.clientY - r.top) / r.height, 0, 1);
+    var v = f * maxScroll();
+    if (!reduce && fine) {
+      tgt = v;
+    } else {
+      window.scrollTo(0, v);
+    }
+  }
+
+  rail.addEventListener("pointerdown", function (e) {
+    dragging = true;
+    try { rail.setPointerCapture(e.pointerId); } catch (err) {}
+    railTo(e);
+    e.preventDefault();
+  });
+  rail.addEventListener("pointermove", function (e) {
+    if (dragging) railTo(e);
+  });
+  ["pointerup", "pointercancel"].forEach(function (n) {
+    rail.addEventListener(n, function () { dragging = false; });
+  });
+
   /* ---------- Measure ---------- */
   function measure() {
     vh = window.innerHeight;
@@ -154,6 +294,8 @@
     sizeCanvas();
     sizeScene();
     sizeSparks();
+    sizeBolts();
+    measureRail();
   }
 
   /* ---------- Particle illustrations (process section) ---------- */
@@ -254,7 +396,8 @@
   }
 
   function drawParticles(time) {
-    var S = Math.min(W * 0.42, H * 0.3), ox = W / 2, oy = H * 0.4;
+    // Smaller and higher, so it leaves a gap above the caption
+    var S = Math.min(W * 0.36, H * 0.24), ox = W / 2, oy = H * 0.32;
     var T = shapes[Math.max(shape, 0)];
     var rc = cv.getBoundingClientRect();
     var mnx = (mouseX * window.innerWidth - rc.left - ox) / S;
@@ -882,14 +1025,17 @@
       var fr = st.querySelector(".frame"), txt = st.querySelector(".ctext"), parts = txt.children;
       if (reduce) return;
       var enter = ease(clamp(p / 0.28, 0, 1)), exit = ease(clamp((p - 0.86) / 0.14, 0, 1));
+      var ta = 0;
       fr.style.opacity = enter * (1 - exit);
       fr.style.transform = "translate3d(" + (mx * 20) + "px," + ((1 - enter) * 140 - exit * 120) + "px,0) rotateY(" + ((0.5 - p) * 16 + mx * 8) + "deg) rotateX(" + (my * -6 + (1 - enter) * 10) + "deg)";
       var starts = [0.34, 0.42, 0.5, 0.58, 0.66];
       for (var i = 0; i < parts.length; i++) {
         var t = ease(clamp((p - starts[i]) / 0.1, 0, 1));
+        if (i === 0) ta = t * (1 - exit);
         parts[i].style.opacity = t * (1 - exit);
         parts[i].style.transform = "translate3d(0," + ((1 - t) * 26 - exit * 60) + "px,0)";
       }
+      txt.style.setProperty("--ta", ta.toFixed(3));
       txt.style.transform = "translate3d(0," + ((0.5 - p) * -30) + "px,0)";
     });
 
@@ -901,6 +1047,9 @@
       cursor.style.transform = "translate3d(" + cx + "px," + cy + "px,0) rotate(-12deg) scale(" + ks.toFixed(3) + ")";
     }
     drawSparks();
+
+    // Thunder scroll bar
+    updateRail(time, y);
 
     requestAnimationFrame(frame);
   }

@@ -7,7 +7,8 @@
   --ease:cubic-bezier(.16,1,.3,1);
 }
 *{box-sizing:border-box;margin:0;padding:0}
-html{scroll-behavior:auto}
+html{scroll-behavior:auto;scrollbar-width:none;-ms-overflow-style:none}
+html::-webkit-scrollbar{width:0;height:0}
 body{background:var(--bg);color:var(--ink);font-family:var(--font);line-height:1.6;overflow-x:hidden}
 a{color:inherit;text-decoration:none}
 ul{list-style:none}
@@ -20,6 +21,19 @@ html.has-cursor,html.has-cursor a{cursor:none}
 .cursor svg{width:100%;height:100%;fill:#fff;stroke:#fff;stroke-width:.6;stroke-linejoin:round;
   filter:drop-shadow(0 0 5px rgba(255,255,255,.9)) drop-shadow(0 0 14px rgba(255,255,255,.45))}
 #sparks{position:fixed;inset:0;width:100%;height:100%;z-index:99;pointer-events:none}
+
+/* Thunder scroll bar (left side) */
+#bolts{position:fixed;inset:0;width:100%;height:100%;z-index:98;pointer-events:none}
+.thunder-rail{position:fixed;left:12px;top:16vh;bottom:16vh;width:30px;z-index:30;touch-action:none;cursor:pointer;user-select:none;-webkit-user-select:none}
+html.has-cursor .thunder-rail{cursor:none}
+.tr-track{position:absolute;left:14px;top:0;bottom:0;width:2px;border-radius:2px;background:rgba(255,255,255,.14)}
+.tr-track::before{content:"";position:absolute;left:-7px;right:-7px;top:0;bottom:0;
+  background:repeating-linear-gradient(to bottom,rgba(255,255,255,.2) 0 1px,transparent 1px 26px)}
+.tr-fill{position:absolute;left:0;top:0;width:100%;height:0;border-radius:2px;
+  background:linear-gradient(#fff,rgba(255,255,255,.4));box-shadow:0 0 10px rgba(255,255,255,.55)}
+.tr-thumb{position:absolute;left:1px;top:0;width:26px;height:26px;margin:-13px 0 0 -13px;fill:#fff;stroke:#fff;stroke-width:.6;stroke-linejoin:round;
+  will-change:transform;filter:drop-shadow(0 0 calc(4px + var(--g,0) * 16px) rgba(255,255,255,.9))}
+.tr-pct{position:absolute;left:0;top:calc(100% + 1rem);font-size:.58rem;letter-spacing:.1em}
 
 /* Wallpaper: factory + conveyor system, fixed behind everything */
 .bg{position:fixed;inset:0;z-index:0;pointer-events:none}
@@ -60,7 +74,7 @@ svg.deco circle.o,svg.deco.gear circle{fill:none;stroke:rgba(255,255,255,.22)}
 .mono{font-family:var(--mono);font-size:.72rem;letter-spacing:.22em;text-transform:uppercase;color:var(--mute)}
 h1,.mega,.brand{font-family:var(--display);font-weight:800;text-transform:uppercase}
 h1,.mega{letter-spacing:.005em;line-height:.88}
-h1{font-size:clamp(4rem,15vw,13rem)}
+h1{font-size:clamp(3.6rem,min(12.5vw,20vh),11rem)}
 h1 .ln{display:block}
 .mk{display:block;overflow:hidden;padding-bottom:.06em;font-style:normal}
 .mk b{display:block;font-weight:800}
@@ -96,12 +110,12 @@ html.js .rv.in{opacity:1;transform:none}
 
 /* Sections */
 .sec{padding:18vh 6vw}
-.hero{min-height:100vh;padding:20vh 6vw 10vh}
+.hero{min-height:100vh;padding:18vh 6vw 14vh}
 .hero .sub{margin-top:2rem;font-size:1.1rem}
 .hero .mono{margin-bottom:1.4rem}
 .hero-card{position:absolute;right:6vw;bottom:30vh;padding:1.4rem 1.6rem;width:min(320px,80vw)}
-.scroll-ind{position:absolute;left:6vw;bottom:5vh}
-.scroll-ind::after{content:"";display:block;width:1px;height:40px;margin-top:.6rem;background:linear-gradient(var(--mute),transparent)}
+.scroll-ind{position:absolute;left:50%;transform:translateX(-50%);bottom:3vh;text-align:center}
+.scroll-ind::after{content:"";display:block;width:1px;height:40px;margin:.6rem auto 0;background:linear-gradient(var(--mute),transparent)}
 .profile{display:grid;grid-template-columns:1.4fr 1fr;gap:3vw;align-items:start}
 .panel{padding:2.4rem}
 .panel h2{margin:1rem 0 1.2rem}
@@ -259,7 +273,9 @@ html.js .rv.in{opacity:1;transform:none}
 .stage{position:sticky;top:0;height:100vh;display:grid;grid-template-columns:1.25fr 1fr;gap:4vw;align-items:center;padding:0 6vw;perspective:1400px}
 .frame{padding:.8rem;will-change:transform,opacity;transform-style:preserve-3d}
 .frame img{border-radius:10px;width:100%;max-height:70vh;object-fit:contain;background:#14151a}
-.ctext{will-change:transform}
+.ctext{position:relative;padding:2rem 2.2rem;will-change:transform}
+.ctext::before{content:"";position:absolute;inset:0;z-index:-1;border-radius:18px;background:rgba(8,9,12,.8);
+  border:1px solid rgba(255,255,255,.1);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);opacity:var(--ta,0)}
 .ctext>*{opacity:0;will-change:transform,opacity}
 .ctext h3{margin:.8rem 0 .6rem}
 .c-c{color:var(--ink)}
@@ -300,6 +316,7 @@ a:focus-visible{outline:2px solid #fff;outline-offset:3px}
   .project.flip .visual{order:0}
   .stage{grid-template-columns:1fr;align-content:center;gap:1.4rem}
   .frame img{max-height:42vh}
+  .ctext{padding:1.3rem 1.4rem}
   .pstage{grid-template-columns:1fr;grid-template-rows:1fr 1fr}
   .pcap .mega{font-size:2.4rem}
   .term{display:none}
@@ -307,6 +324,7 @@ a:focus-visible{outline:2px solid #fff;outline-offset:3px}
   .nav nav{display:none}
   .chip{display:none}
   .status{display:none}
+  .thunder-rail{left:2px}
 }
 @media(prefers-reduced-motion:reduce){
   .spin,.status i,.asrs-mover,.asrs-lift,.asrs-pusher,.asrs-payload,.asrs-sensor{animation:none}
@@ -322,7 +340,9 @@ a:focus-visible{outline:2px solid #fff;outline-offset:3px}
   .asrs-pusher{transform:scaleX(.15)}
   .asrs-payload{opacity:1}
   .asrs-sensor{opacity:1}
+  #bolts{display:none}
   html.js .mk b,html.js .intro-fade,html.js .rv{opacity:1!important;transform:none!important}
   .ctext>*{opacity:1!important;transform:none!important}
+  .ctext::before{opacity:1!important}
   .frame{opacity:1!important;transform:none!important}
 }
